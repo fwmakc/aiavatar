@@ -82,3 +82,4 @@ data/
 ## Лицензия
 
 Apache 2.0 — см. [LICENSE](LICENSE).
+
