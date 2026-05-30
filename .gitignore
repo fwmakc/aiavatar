@@ -1,4 +1,8 @@
 node_modules/
 dist/
 .env
+.env.local
+*.log
 data/relationships.json
+data/relationships.json.bak
+.DS_Store

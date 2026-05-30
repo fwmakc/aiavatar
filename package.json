@@ -1,7 +1,7 @@
 {
   "name": "aiavatar",
   "version": "2.0.0",
-  "description": "Telegram AI avatar bot with TypeScript",
+  "description": "Telegram AI avatar bot with modular per-chat/persona configuration",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/main.ts",
@@ -9,6 +9,15 @@
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit"
   },
+  "keywords": [
+    "telegram",
+    "bot",
+    "ai",
+    "avatar",
+    "chatbot",
+    "typescript"
+  ],
+  "license": "Apache-2.0",
   "dependencies": {
     "dotenv": "^17.4.2",
     "https-proxy-agent": "^5.0.1",
