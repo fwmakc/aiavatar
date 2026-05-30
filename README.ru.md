@@ -70,6 +70,17 @@ npm start
 npm run dev
 ```
 
+## Docker
+
+```bash
+# Собрать и запустить через docker-compose
+docker-compose up -d
+
+# Или вручную
+docker build -t aiavatar .
+docker run -d --env-file .env -v ./data:/app/data aiavatar
+```
+
 ## Структура конфигов
 
 ```
