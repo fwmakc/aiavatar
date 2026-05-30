@@ -47,6 +47,7 @@
 - **Anthropic 兼容 API** — 通过 `/messages` 支持 Kimi、Claude 等
 - **HTTP 代理** — 支持在受限地区通过代理访问 Telegram API
 - **TypeScript + Vite** — 构建为单个 SSR 包
+- **双 AI API** — 支持 Anthropic `/messages` 和 OpenAI `/chat/completions`
 
 ## 快速开始
 
@@ -155,6 +156,7 @@ data/
 | `AI_MODEL` | 模型名称 |
 | `AI_TEMPERATURE` | 回复温度（0.0–1.0+） |
 | `AI_MAX_TOKENS` | 令牌上限 |
+| `AI_API_FORMAT` | API 格式：`anthropic`（默认）或 `openai` |
 | `PROXY_URL` | Telegram 的 HTTP 代理 |
 | `ALLOWED_USERS` | 允许的用户 ID/用户名（逗号分隔） |
 | `GROUP_ACTIVE_MODE` | 启用群组中的主动回复 |

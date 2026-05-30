@@ -51,6 +51,7 @@ An adaptive scheduler posts content only when the chat is idle:
 - **Anthropic-compatible API** — works with Kimi, Claude and others via `/messages`
 - **HTTP proxy** — proxy support for Telegram API in blocked regions
 - **TypeScript + Vite** — built into a single SSR bundle
+- **Dual AI API** — supports both Anthropic `/messages` and OpenAI `/chat/completions`
 
 ## Quick Start
 
@@ -159,6 +160,7 @@ See [`.env.example`](.env.example).
 | `AI_MODEL` | Model name |
 | `AI_TEMPERATURE` | Response temperature (0.0–1.0+) |
 | `AI_MAX_TOKENS` | Token limit |
+| `AI_API_FORMAT` | API format: `anthropic` (default) or `openai` |
 | `PROXY_URL` | HTTP proxy for Telegram |
 | `ALLOWED_USERS` | Allowed user IDs/usernames (comma-separated) |
 | `GROUP_ACTIVE_MODE` | Enable proactive replies in groups |
