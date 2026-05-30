@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import type { RelationshipRecord, RelationshipHistoryEntry } from '@/types';
 
-const RELATIONSHIP_FILE = 'relationships.json';
+const RELATIONSHIP_FILE = 'data/relationships.json';
 
 export class RelationshipManager {
   private data = new Map<string, RelationshipRecord>();

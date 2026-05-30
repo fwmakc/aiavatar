@@ -1,15 +1,26 @@
 import { config } from '@/config/env';
 import { buildSystemPrompt } from '@/config/persona';
 
+export interface AIMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export async function askAI(
   userText: string,
   customSystemPrompt: string | null = null,
-  tone: string | null = null
+  tone: string | null = null,
+  history: AIMessage[] = []
 ): Promise<string> {
   let system = customSystemPrompt ?? buildSystemPrompt();
   if (tone) {
     system += `\n\nВажно: пользователь сейчас в ${tone}-настроении. Подстрой свой тон ответа под это настроение, но оставайся в рамках своей роли.`;
   }
+
+  const messages: AIMessage[] = [
+    ...history,
+    { role: 'user', content: userText },
+  ];
 
   const res = await fetch(`${config.aiBaseUrl}/messages`, {
     method: 'POST',
@@ -23,7 +34,7 @@ export async function askAI(
       max_tokens: config.aiMaxTokens,
       temperature: config.aiTemperature,
       system,
-      messages: [{ role: 'user', content: userText }],
+      messages,
     }),
   });
 

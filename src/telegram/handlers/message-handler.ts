@@ -3,7 +3,7 @@ import { config } from '@/config/env';
 import { buildSystemPrompt } from '@/config/persona';
 import { getPeoplePromptAddon } from '@/people/prompt';
 import { bot } from '@/telegram/bot';
-import { askAI } from '@/ai/client';
+import { askAI, type AIMessage } from '@/ai/client';
 import { analyzeTone, analyzeAttitudeTowardsBot } from '@/ai/tone-analyzer';
 import { shouldAnswerGroup, guardCheck, guardCheckPrivate, topicGuard, generateDenial } from '@/ai/screening';
 import { relationships } from '@/relationship/manager';
@@ -288,8 +288,9 @@ export function setupMessageHandler(): void {
         return;
       }
 
-      // Topic guard + mat analysis — only for direct interactions (private / reply / mention)
-      if (isDirectInteraction) {
+      // Topic guard — only for private chats (no group context available)
+      // In groups, guardCheck already validates against chat context
+      if (isPrivate) {
         const onTopic = await topicGuard(cleanText);
         if (!onTopic) {
           console.log(`Topic guard blocked: ${cleanText.slice(0, 50)}`);
@@ -297,8 +298,6 @@ export function setupMessageHandler(): void {
           await ctx.reply(denial, { reply_to_message_id: (ctx.message as any).message_id });
           return;
         }
-
-
       }
 
       if (userId && config.titForTatMode) {
@@ -336,7 +335,16 @@ export function setupMessageHandler(): void {
         // Каждое сообщение в режиме помирования улучшает отношения
         relationships.addScore(userId, userId, +1, 'попытка наладить контакт');
       } else {
-        aiReply = await askAI(cleanText, fullSystemPrompt, tone);
+        // Build conversation history for context
+        let history: AIMessage[] = [];
+        if (!isPrivate) {
+          const msgs = groupContextManager.get(chatId).messages;
+          history = msgs.slice(0, -1).slice(-config.groupContextLimit).map(m => ({ role: 'user' as const, content: `${m.author}: ${m.text}` }));
+        } else if (userId) {
+          const msgs = privateContextManager.getMessages(userId);
+          history = msgs.slice(0, -1).slice(-config.groupContextLimit).map(m => ({ role: m.role === 'Assistant' ? ('assistant' as const) : ('user' as const), content: m.text }));
+        }
+        aiReply = await askAI(cleanText, fullSystemPrompt, tone, history);
       }
 
       await ctx.reply(aiReply, { reply_to_message_id: (ctx.message as any).message_id });
@@ -383,7 +391,7 @@ async function checkAndIntervene(chatId: number): Promise<void> {
   console.log(`[Intervention] chat ${chatId}: накал обнаружен, готовлю вмешательство`);
 
   // Собираем контекст конфликта
-  const recent = chain.slice(-6);
+  const recent = chain.slice(-config.groupContextLimit);
   const participantIds = [...new Set(recent.map(c => c.userId))];
   if (participantIds.length < 1) return;
 
