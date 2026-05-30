@@ -2,25 +2,37 @@
 
 Telegram-бот — цифровой двойник с модульной конфигурацией. Общается в группах и личке, постит контент, вмешивается в споры и помнит отношения с людьми.
 
-## Быстрый старт
+## Требования
 
-```bash
-npm install
-npm run build
-npm start
-```
+- Node.js 18+
+
+## Установка
+
+1. Клонируй репозиторий:
+   ```bash
+   git clone https://github.com/fwmakc/aiavatar.git
+   cd aiavatar
+   ```
+
+2. Установи зависимости:
+   ```bash
+   npm install
+   ```
+
+3. Скопируй и заполни `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+
+4. Собери и запусти:
+   ```bash
+   npm run build
+   npm start
+   ```
 
 Для разработки:
 ```bash
 npm run dev
-```
-
-## Переменные окружения
-
-Скопируй `.env.example` → `.env` и заполни:
-
-```bash
-cp .env.example .env
 ```
 
 ## Структура конфигов
