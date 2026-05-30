@@ -18,6 +18,16 @@
     "typescript"
   ],
   "license": "Apache-2.0",
+  "main": "dist/main.js",
+  "files": [
+    "dist/",
+    "data/",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "dotenv": "^17.4.2",
     "https-proxy-agent": "^5.0.1",
