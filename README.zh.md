@@ -1,6 +1,6 @@
 # AIAvatar
 
-[🇷🇺 Русский](README.md) | [🇬🇧 English](README.en.md) | [🇨🇳 中文](README.zh.md)
+[🇷🇺 Русский](README.ru.md) | [🇬🇧 English](README.md) | [🇨🇳 中文](README.zh.md)
 
 一个具有模块化人格、社交智能和内容引擎的 Telegram 机器人。数字分身，能够记住用户、适应聊天环境、按计划发布内容并介入争论——全部通过 JSON 配置文件实现，无需修改代码。
 
