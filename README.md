@@ -2,6 +2,10 @@
 
 [🇷🇺 Русский](README.ru.md) | [🇬🇧 English](README.md) | [🇨🇳 中文](README.zh.md)
 
+[![CI](https://github.com/fwmakc/aiavatar/actions/workflows/ci.yml/badge.svg)](https://github.com/fwmakc/aiavatar/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D24-green.svg)](https://nodejs.org/)
+
 A Telegram bot with a modular persona, social intelligence, and a content engine. A digital twin that remembers people, adapts to chats, posts content on schedule, and intervenes in arguments — all via JSON configs without touching the code.
 
 ## Features

@@ -1,0 +1,13 @@
+services:
+  aiavatar:
+    build: .
+    container_name: aiavatar
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - aiavatar-relationships:/app/data/relationships
+
+volumes:
+  aiavatar-relationships:
