@@ -19,7 +19,7 @@ The bot's entire personality lives in JSON files, not code. Change name, style, 
 
 ### 👥 Social Intelligence
 - **User profiles** — `data/users/{userId}.json`: how to address them, what to know
-- **Relationship system** — dynamic score (−5..+5) per-chat per-user. The bot remembers who is a friend and who is not
+- **Relationship system** — dynamic score (−5..+5) per-chat per-user, mapped to 5 named emotional stages. The bot remembers who is a friend and who is not
 - **Tone analysis** — AI detects the interlocutor's mood and adjusts the response
 - **TIT FOR TAT** — worse relationship = more sarcastic bot. Good relationship = warmth and friendship
 - **Reconciliation mode** — in DMs with negative score the bot suggests making peace
@@ -118,6 +118,50 @@ data/
 | `contentSources.challenges.topics` | Topics for wellness reminders |
 | `schedule.quietHours` | Quiet hours (start/end in HH:MM) |
 | `schedule.quietDays` | Quiet days (0 = Sunday) |
+| `personaStages` | Emotional stages for relationship dynamics (see below) |
+
+#### `personaStages`
+
+Each stage defines how the bot behaves toward a user at a given relationship score. If a stage is missing from the config, a built-in fallback is used.
+
+| Score | Stage | Meaning |
+|---|---|---|
+| −5..−4 | `hostile` | Enemy. Maximum sarcasm, cold distance, no help |
+| −3..−2 | `cold` | Unfriendly. Short replies, restrained, slight sarcasm |
+| −1..+1 | `neutral` | Neutral. Default base prompt, polite, no familiarity |
+| +2..+3 | `warm` | Acquaintance. Warm, informal, can joke and tease lightly |
+| +4..+5 | `intimate` | Friend. Maximum informality, slang, memes, close tone |
+
+Each stage is an object with optional fields:
+
+```json
+{
+  "personaStages": {
+    "hostile": {
+      "style": "Maximum sarcasm, cold distance",
+      "restrictions": "Do not help or explain. Only barbs and detachment."
+    },
+    "cold": {
+      "style": "Restrained, slightly sarcastic",
+      "restrictions": "Do not initiate conversation. Short replies, no enthusiasm."
+    },
+    "neutral": {
+      "style": "Base communication style",
+      "restrictions": "No familiarity, no teasing. Just answer the question."
+    },
+    "warm": {
+      "style": "Warm, informal, can joke and tease lightly",
+      "restrictions": "Be informal but don't cross into close-friend territory."
+    },
+    "intimate": {
+      "style": "Maximum informality, slang, memes, teasing",
+      "restrictions": "Be yourself, but avoid personal insults."
+    }
+  }
+}
+```
+
+Priority: `chats` > `personal_chats` > `default`.
 
 ### `data/chats/{chatId}.json`
 

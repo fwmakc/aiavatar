@@ -1,5 +1,14 @@
 import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { getPersonaStages } from '@/config/persona';
 import type { RelationshipRecord, RelationshipHistoryEntry } from '@/types';
+
+function scoreToStage(score: number): 'hostile' | 'cold' | 'neutral' | 'warm' | 'intimate' {
+  if (score <= -4) return 'hostile';
+  if (score <= -2) return 'cold';
+  if (score <= 1) return 'neutral';
+  if (score <= 3) return 'warm';
+  return 'intimate';
+}
 
 const RELATIONSHIP_FILE = 'data/relationships.json';
 
@@ -33,13 +42,24 @@ export class RelationshipManager {
 
   getPromptAddon(chatId: number | string, userId: number): string {
     const { score } = this.get(chatId, userId);
-    if (score >= 4) return 'Пользователь — твой близкий друг. Можешь быть максимально неформальным, использовать сленг, мемы, подкалывать. Вы на короткой ноге.';
-    if (score >= 2) return 'Пользователь — хороший знакомый. Общайся тепло, на "ты", можешь шутить и слегка поддразнивать.';
-    if (score >= 1) return 'Пользователь — приятный собеседник. Общайся дружелюбно, можешь быть не слишком формальным.';
-    if (score >= 0) return 'Пользователь — нейтральный собеседник. Общайся вежливо, без лишней эмоциональности.';
-    if (score >= -2) return 'Пользователь тебе не особо симпатичен. Ты сдержан, слегка саркастичен, можешь осторожно подколоть, но не переходи на грубость.';
-    if (score >= -4) return 'Пользователь тебе неприятен. Ты холоден, саркастичен, регулярно подкалываешь и стебёшь, но держись в рамках приличий.';
-    return 'Пользователь тебе крайне неприятен. Ты максимально саркастичен, едко подкалываешь, стебёшь, но прямых оскорблений избегай.';
+    const stageKey = scoreToStage(score);
+    const stages = getPersonaStages(chatId, userId);
+    const stage = stages?.[stageKey];
+    if (!stage) {
+      // Fallback for missing config
+      switch (stageKey) {
+        case 'intimate': return 'Пользователь — твой близкий друг. Можешь быть максимально неформальным, использовать сленг, мемы, подкалывать. Вы на короткой ноге.';
+        case 'warm': return 'Пользователь — хороший знакомый. Общайся тепло, на "ты", можешь шутить и слегка поддразнивать.';
+        case 'neutral': return 'Пользователь — нейтральный собеседник. Общайся вежливо, без лишней эмоциональности.';
+        case 'cold': return 'Пользователь тебе не особо симпатичен. Ты сдержан, слегка саркастичен, можешь осторожно подколоть, но не переходи на грубость.';
+        case 'hostile': return 'Пользователь тебе крайне неприятен. Ты максимально саркастичен, едко подкалываешь, стебёшь, но прямых оскорблений избегай.';
+      }
+    }
+    const parts: string[] = [];
+    if (stage.style) parts.push(stage.style);
+    if (stage.restrictions) parts.push(stage.restrictions);
+    if (stage.interests) parts.push(stage.interests);
+    return parts.join(' ') || '';
   }
 
   private save(): void {

@@ -10,6 +10,14 @@ export interface ActivitySchedule {
   quietDays?: number[]; // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
 }
 
+export interface PersonaStage {
+  style?: string;
+  restrictions?: string;
+  interests?: string;
+}
+
+export type PersonaStageKey = 'hostile' | 'cold' | 'neutral' | 'warm' | 'intimate';
+
 export interface BotPersona {
   name: string;
   specialization: string;
@@ -17,6 +25,7 @@ export interface BotPersona {
   views: string;
   style: string;
   language: string;
+  personaStages?: Partial<Record<PersonaStageKey, PersonaStage>>;
   contentSources?: {
     news?: string[];
     jokes?: {
@@ -103,6 +112,10 @@ export function getChatPersonaConfig(chatId?: string | number): BotPersona {
     },
     schedule: override.schedule ?? base.schedule,
     language: override.language ?? base.language,
+    personaStages: {
+      ...base.personaStages,
+      ...override.personaStages,
+    },
   };
 }
 
@@ -140,6 +153,15 @@ export function buildSystemPrompt(chatId?: string | number, userId?: number): st
 export function getChatNewsSources(chatId?: number): string[] {
   const cfg = getChatPersonaConfig(chatId);
   return cfg.contentSources?.news ?? [];
+}
+
+export function getPersonaStages(chatId?: string | number, userId?: number): Partial<Record<PersonaStageKey, PersonaStage>> | undefined {
+  const base = getChatPersonaConfig(chatId);
+  const up = userId ? loadPersonalChatPersona(userId) : null;
+  if (up?.personaStages) {
+    return { ...base.personaStages, ...up.personaStages };
+  }
+  return base.personaStages;
 }
 
 function invalidateCache(): void {
