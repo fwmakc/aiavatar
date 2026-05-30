@@ -48,8 +48,10 @@ export function listUserProfiles(): Map<number, UserProfile> {
   return new Map(cache);
 }
 
-// Hot-reload: watch directory for changes
+// Hot-reload: watch directory for changes with debounce
+let debounceTimer: NodeJS.Timeout | null = null;
 let watcherActive = false;
+
 export function startPeopleWatcher(): void {
   if (watcherActive) return;
   watcherActive = true;
@@ -57,8 +59,12 @@ export function startPeopleWatcher(): void {
   try {
     const w = watch(USERS_DIR, { persistent: false }, (event, filename) => {
       if (filename && filename.endsWith('.json')) {
-        console.log(`[People] Detected change in ${filename}, reloading...`);
-        loadAll();
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          console.log(`[People] Detected change in ${filename}, reloading...`);
+          loadAll();
+          debounceTimer = null;
+        }, 300);
       }
     });
     w.on('error', (err) => console.warn('[People] Watcher error:', err));

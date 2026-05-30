@@ -1,124 +1,127 @@
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { db } from '@/db';
 
 interface Edge {
   targetUserId: number;
-  weight: number;        // -10 (враги) .. +10 (братья)
+  weight: number;
   interactionCount: number;
   lastConflict: number;
   lastPositive: number;
 }
 
-interface GraphData {
-  [userId: string]: Edge[];
+const stmtGet = db.prepare('SELECT * FROM social_graph WHERE from_user_id = ? AND to_user_id = ?');
+
+const stmtGetAll = db.prepare('SELECT * FROM social_graph WHERE from_user_id = ?');
+
+const stmtUpsert = db.prepare(
+  `INSERT INTO social_graph (from_user_id, to_user_id, weight, interaction_count, last_conflict, last_positive)
+   VALUES (?, ?, ?, ?, ?, ?)
+   ON CONFLICT(from_user_id, to_user_id) DO UPDATE SET
+     weight = excluded.weight,
+     interaction_count = excluded.interaction_count,
+     last_conflict = excluded.last_conflict,
+     last_positive = excluded.last_positive`
+);
+
+function rowToEdge(row: any): Edge {
+  return {
+    targetUserId: row.to_user_id,
+    weight: row.weight,
+    interactionCount: row.interaction_count,
+    lastConflict: row.last_conflict,
+    lastPositive: row.last_positive,
+  };
 }
 
-const GRAPH_FILE = 'social-graph.json';
+export function updateGraphInteraction(
+  fromUserId: number,
+  toUserId: number,
+  tone: string,
+  isReply: boolean
+): void {
+  if (fromUserId === toUserId) return;
 
-export class RelationshipGraph {
-  private data = new Map<number, Edge[]>();
-
-  constructor() {
-    this.load();
-  }
-
-  private getEdges(userId: number): Edge[] {
-    return this.data.get(userId) || [];
-  }
-
-  private findEdge(userId: number, targetId: number): Edge | undefined {
-    return this.getEdges(userId).find(e => e.targetUserId === targetId);
-  }
-
-  updateInteraction(
-    fromUserId: number,
-    toUserId: number,
-    tone: string,
-    isReply: boolean
-  ): void {
-    if (fromUserId === toUserId) return;
-
-    const edges = this.getEdges(fromUserId);
-    let edge = this.findEdge(fromUserId, toUserId);
-
-    if (!edge) {
-      edge = {
+  const row = stmtGet.get(fromUserId, toUserId);
+  const edge: Edge = row
+    ? rowToEdge(row)
+    : {
         targetUserId: toUserId,
         weight: 0,
         interactionCount: 0,
         lastConflict: 0,
         lastPositive: 0,
       };
-      edges.push(edge);
-    }
 
-    edge.interactionCount++;
+  edge.interactionCount++;
 
-    // Начисляем weight по тону
-    let delta = 0;
-    if (tone === 'льстивый' || tone === 'весёлый') {
-      delta = +2;
-      edge.lastPositive = Date.now();
-    } else if (tone === 'агрессивный' || tone === 'оскорбительный') {
-      delta = -3;
-      edge.lastConflict = Date.now();
-    } else if (tone === 'саркастичный') {
-      delta = -1;
-    } else {
-      delta = isReply ? +1 : 0; // Простое упоминание без reply — нейтрально
-    }
-
-    edge.weight = Math.max(-10, Math.min(10, edge.weight + delta));
-    this.data.set(fromUserId, edges);
-    this.save();
+  let delta = 0;
+  if (tone === 'льстивый' || tone === 'весёлый') {
+    delta = +2;
+    edge.lastPositive = Date.now();
+  } else if (tone === 'агрессивный' || tone === 'оскорбительный') {
+    delta = -3;
+    edge.lastConflict = Date.now();
+  } else if (tone === 'саркастичный') {
+    delta = -1;
+  } else {
+    delta = isReply ? +1 : 0;
   }
 
-  getWeight(fromUserId: number, toUserId: number): number {
-    return this.findEdge(fromUserId, toUserId)?.weight || 0;
-  }
+  edge.weight = Math.max(-10, Math.min(10, edge.weight + delta));
 
-  getAllEdges(userId: number): Edge[] {
-    return [...this.getEdges(userId)];
-  }
+  stmtUpsert.run(
+    fromUserId,
+    toUserId,
+    edge.weight,
+    edge.interactionCount,
+    edge.lastConflict,
+    edge.lastPositive
+  );
+}
 
-  findConflictPair(chatMembers: number[]): [number, number] | null {
-    // Ищем пару с наибольшим негативным weight
-    let worstPair: [number, number] | null = null;
-    let worstScore = -1;
+export function getGraphWeight(fromUserId: number, toUserId: number): number {
+  const row = stmtGet.get(fromUserId, toUserId) as { weight: number } | undefined;
+  return row?.weight ?? 0;
+}
 
-    for (const uid of chatMembers) {
-      for (const edge of this.getEdges(uid)) {
-        if (chatMembers.includes(edge.targetUserId)) {
-          const score = Math.abs(edge.weight);
-          if (edge.weight < -3 && score > worstScore) {
-            worstScore = score;
-            worstPair = [uid, edge.targetUserId];
-          }
+export function getGraphEdges(userId: number): Edge[] {
+  return (stmtGetAll.all(userId) as any[]).map(rowToEdge);
+}
+
+export function findConflictPair(chatMembers: number[]): [number, number] | null {
+  let worstPair: [number, number] | null = null;
+  let worstScore = -1;
+
+  for (const uid of chatMembers) {
+    for (const edge of getGraphEdges(uid)) {
+      if (chatMembers.includes(edge.targetUserId)) {
+        const score = Math.abs(edge.weight);
+        if (edge.weight < -3 && score > worstScore) {
+          worstScore = score;
+          worstPair = [uid, edge.targetUserId];
         }
       }
     }
-
-    return worstPair;
   }
 
-  private save(): void {
-    const obj: GraphData = {};
-    for (const [key, value] of this.data) {
-      obj[String(key)] = value;
-    }
-    writeFileSync(GRAPH_FILE, JSON.stringify(obj, null, 2));
+  return worstPair;
+}
+
+// Backward-compatible singleton wrapper
+class RelationshipGraph {
+  updateInteraction(fromUserId: number, toUserId: number, tone: string, isReply: boolean): void {
+    updateGraphInteraction(fromUserId, toUserId, tone, isReply);
   }
 
-  private load(): void {
-    if (!existsSync(GRAPH_FILE)) return;
-    try {
-      const raw = readFileSync(GRAPH_FILE, 'utf-8');
-      const obj = JSON.parse(raw) as GraphData;
-      for (const [key, value] of Object.entries(obj)) {
-        this.data.set(Number(key), value);
-      }
-    } catch (e) {
-      console.error('Failed to load social graph:', (e as Error).message);
-    }
+  getWeight(fromUserId: number, toUserId: number): number {
+    return getGraphWeight(fromUserId, toUserId);
+  }
+
+  getAllEdges(userId: number): Edge[] {
+    return getGraphEdges(userId);
+  }
+
+  findConflictPair(chatMembers: number[]): [number, number] | null {
+    return findConflictPair(chatMembers);
   }
 }
 

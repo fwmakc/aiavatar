@@ -1,7 +1,6 @@
 import { readFileSync, existsSync, readdirSync, watch, mkdirSync } from 'fs';
 import { resolve } from 'path';
 
-
 export interface ActivitySchedule {
   quietHours?: {
     start: string; // "HH:MM" 24h
@@ -50,7 +49,7 @@ const PERSONAL_CHATS_DIR = resolve(DATA_DIR, 'personal_chats');
 
 let cachedDefault: BotPersona | null = null;
 let cachedChats = new Map<string, BotPersona>();
-let watcherActive = false;
+let cachedPersonalChats = new Map<number, Partial<BotPersona>>();
 
 function loadJson<T>(path: string): T | null {
   if (!existsSync(path)) return null;
@@ -75,7 +74,6 @@ function loadDefault(): BotPersona {
 function loadChat(chatId: string | number): BotPersona | null {
   const key = String(chatId);
   if (cachedChats.has(key)) return cachedChats.get(key)!;
-  // Chat IDs from Telegram start with '-' (e.g. -100...), but filenames omit it
   const fileName = key.startsWith('-') ? key.slice(1) : key;
   const cfg = loadJson<BotPersona>(resolve(CHATS_DIR, `${fileName}.json`));
   if (cfg) cachedChats.set(key, cfg);
@@ -120,12 +118,15 @@ export function getChatPersonaConfig(chatId?: string | number): BotPersona {
 }
 
 function loadPersonalChatPersona(userId: number): Partial<BotPersona> | null {
+  if (cachedPersonalChats.has(userId)) return cachedPersonalChats.get(userId)!;
   const path = resolve(PERSONAL_CHATS_DIR, `${userId}.json`);
   if (!existsSync(path)) return null;
   try {
     const raw = readFileSync(path, 'utf-8');
     const data = JSON.parse(raw) as { persona?: Partial<BotPersona> };
-    return data.persona ?? null;
+    const persona = data.persona ?? null;
+    if (persona) cachedPersonalChats.set(userId, persona);
+    return persona;
   } catch {
     return null;
   }
@@ -134,7 +135,6 @@ function loadPersonalChatPersona(userId: number): Partial<BotPersona> | null {
 export function buildSystemPrompt(chatId?: string | number, userId?: number): string {
   const p = getChatPersonaConfig(chatId);
 
-  // Apply user-specific persona override if available
   const up = userId ? loadPersonalChatPersona(userId) : null;
 
   const specialization = up?.specialization ?? p.specialization;
@@ -164,26 +164,76 @@ export function getPersonaStages(chatId?: string | number, userId?: number): Par
   return base.personaStages;
 }
 
-function invalidateCache(): void {
+// === Hot reload with debounce ===
+
+let defaultDebounce: NodeJS.Timeout | null = null;
+let chatsDebounce: NodeJS.Timeout | null = null;
+let personalDebounce: NodeJS.Timeout | null = null;
+
+function debounce(timer: NodeJS.Timeout | null, fn: () => void): NodeJS.Timeout {
+  if (timer) clearTimeout(timer);
+  return setTimeout(fn, 300);
+}
+
+function invalidateDefault() {
   cachedDefault = null;
+  // Chat overrides merge with default, so they need re-merge too
   cachedChats.clear();
+  console.log('[Persona] default.json changed — invalidated default + all chat caches');
+}
+
+function invalidateChat(fileName: string) {
+  const chatId = fileName.endsWith('.json') ? fileName.slice(0, -5) : fileName;
+  cachedChats.delete(chatId);
+  console.log(`[Persona] chats/${fileName} changed — invalidated chat ${chatId}`);
+}
+
+function invalidatePersonal(fileName: string) {
+  const userIdStr = fileName.endsWith('.json') ? fileName.slice(0, -5) : fileName;
+  const userId = Number(userIdStr);
+  if (!Number.isNaN(userId)) {
+    cachedPersonalChats.delete(userId);
+    console.log(`[Persona] personal_chats/${fileName} changed — invalidated user ${userId}`);
+  }
+}
+
+function watchFile(path: string, onChange: () => void) {
+  if (!existsSync(path)) return;
+  try {
+    const w = watch(path, { persistent: false }, () => onChange());
+    w.on('error', (err) => console.warn('[Persona] Watcher error:', err));
+  } catch {
+    console.warn(`[Persona] fs.watch not available for ${path}`);
+  }
+}
+
+function watchDir(dir: string, onFileChange: (fileName: string) => void) {
+  if (!existsSync(dir)) return;
+  try {
+    const w = watch(dir, { persistent: false }, (_, fileName) => {
+      if (fileName && fileName.endsWith('.json')) {
+        onFileChange(fileName);
+      }
+    });
+    w.on('error', (err) => console.warn('[Persona] Watcher error:', err));
+  } catch {
+    console.warn(`[Persona] fs.watch not available for ${dir}`);
+  }
 }
 
 export function startPersonaWatcher(): void {
-  if (watcherActive) return;
-  watcherActive = true;
+  // Watch default.json
+  watchFile(DEFAULT_FILE, () => {
+    defaultDebounce = debounce(defaultDebounce, invalidateDefault);
+  });
 
-  try {
-    if (existsSync(DATA_DIR)) {
-      const w = watch(DATA_DIR, { persistent: false, recursive: true }, (event, filename) => {
-        if (filename && filename.endsWith('.json')) {
-          console.log(`[Persona] Detected change in ${filename}, reloading...`);
-          invalidateCache();
-        }
-      });
-      w.on('error', (err) => console.warn('[Persona] Watcher error:', err));
-    }
-  } catch {
-    console.warn('[Persona] fs.watch not available, hot-reload disabled');
-  }
+  // Watch chats/ directory
+  watchDir(CHATS_DIR, (fileName) => {
+    chatsDebounce = debounce(chatsDebounce, () => invalidateChat(fileName));
+  });
+
+  // Watch personal_chats/ directory
+  watchDir(PERSONAL_CHATS_DIR, (fileName) => {
+    personalDebounce = debounce(personalDebounce, () => invalidatePersonal(fileName));
+  });
 }

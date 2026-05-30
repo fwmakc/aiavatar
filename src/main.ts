@@ -5,11 +5,15 @@ import { setupMessageHandler } from '@/telegram/handlers/message-handler';
 import { startContentScheduler } from '@/content/scheduler';
 import { startPeopleWatcher } from '@/people/loader';
 import { startPersonaWatcher } from '@/config/persona';
+import { runMigrations } from '@/db/migrate';
 
 console.log('=== Старт ===');
 console.log('Bot username:', config.botUsername);
 console.log('Proxy:', config.proxyUrl ? config.proxyUrl.replace(/:\/\/[^:]+:[^@]+@/, '://***@') : 'none');
 console.log('AI URL:', config.aiBaseUrl);
+
+// Migrate old JSON databases to SQLite before anything else touches them
+runMigrations();
 
 setupMessageHandler();
 startPeopleWatcher();

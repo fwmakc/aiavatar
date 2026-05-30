@@ -3,6 +3,13 @@ dist/
 .env
 .env.local
 *.log
+data/bot.db
+data/bot.db-shm
+data/bot.db-wal
 data/relationships.json
 data/relationships.json.bak
+user-profiles.json
+user-profiles.json.bak
+social-graph.json
+social-graph.json.bak
 .DS_Store

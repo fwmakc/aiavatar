@@ -11,6 +11,7 @@ export default defineConfig({
     outDir: 'dist',
     ssr: 'src/main.ts',
     rollupOptions: {
+      external: ['better-sqlite3'],
       output: {
         format: 'es',
         entryFileNames: 'main.js',
