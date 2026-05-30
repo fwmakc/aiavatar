@@ -47,7 +47,8 @@ An adaptive scheduler posts content only when the chat is idle:
 - **Context** — AI sees the last N messages, not just the current one
 
 ### ⚙️ Technical
-- **Hot reload** — changes in `data/` are picked up without restart
+- **SQLite database** — all dynamic data (relationships, profiles, bans, engagement) lives in a single ACID-compliant `data/bot.db`. No race conditions, no JSON corruption, no data loss on restart
+- **Hot reload** — persona JSON configs are picked up without restart (300ms debounced, granular per-file invalidation)
 - **Anthropic-compatible API** — works with Kimi, Claude and others via `/messages`
 - **HTTP proxy** — proxy support for Telegram API in blocked regions
 - **TypeScript + Vite** — built into a single SSR bundle
@@ -90,14 +91,16 @@ docker run -d --env-file .env -v ./data:/app/data aiavatar
 
 ```
 data/
-  default.json              # Base bot persona
+  default.json              # Base bot persona (read-only, hot-reloadable)
   chats/
     1001234567890.json      # Chat overrides (ID without the minus)
   users/
-    123456789.json          # Social profile of a person
+    123456789.json          # Social profile of a person (read-only, hot-reloadable)
   personal_chats/
-    123456789.json          # Persona for DMs with this person
-  relationships.json        # Dynamic relationships (do not commit)
+    123456789.json          # Persona for DMs with this person (read-only, hot-reloadable)
+  bot.db                    # SQLite: relationships, profiles, bans, engagement, DM context
+  bot.db-shm                # SQLite WAL shared-memory file
+  bot.db-wal                # SQLite WAL journal
 ```
 
 ### `data/default.json`
@@ -190,6 +193,21 @@ Overrides any fields from `default.json` for a specific chat. Telegram chat IDs 
 ```
 
 Applied **only in DMs**. Priority: `chats` > `personal_chats` > `default`.
+
+## Database
+
+All **dynamic** data is stored in `data/bot.db` (SQLite, WAL mode). The bot never writes to JSON files.
+
+| Table | Purpose |
+|---|---|
+| `relationships` | Per-chat per-user scores (−5..+5) with history |
+| `user_profiles` | Aggregated user stats (message count, aggression rate, emoji usage, etc.) |
+| `social_graph` | Directed weighted edges between users (conflict / friendship) |
+| `bans` | Guard denials and ban expiry timestamps |
+| `chat_engagement` | Last message time, content history, deduplication cache, active quiz |
+| `private_context` | DM conversation history (last 10 messages per user) |
+
+On first startup, legacy JSON files (`relationships.json`, `user-profiles.json`, `social-graph.json`) are automatically imported into SQLite and renamed to `*.bak`.
 
 ## Environment Variables
 

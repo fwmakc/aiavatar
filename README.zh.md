@@ -43,7 +43,8 @@
 - **上下文** — AI 看到最近 N 条消息，而非仅当前消息
 
 ### ⚙️ 技术特性
-- **热重载** — `data/` 中的更改无需重启即可生效
+- **SQLite 数据库** — 所有动态数据（关系、档案、封禁、参与度）存储在单个符合 ACID 的 `data/bot.db` 中。无竞态条件、无 JSON 损坏、重启不丢数据
+- **热重载** — 人格 JSON 配置无需重启即可生效（300 毫秒防抖，仅使更改的文件缓存失效）
 - **Anthropic 兼容 API** — 通过 `/messages` 支持 Kimi、Claude 等
 - **HTTP 代理** — 支持在受限地区通过代理访问 Telegram API
 - **TypeScript + Vite** — 构建为单个 SSR 包
@@ -86,14 +87,16 @@ docker run -d --env-file .env -v ./data:/app/data aiavatar
 
 ```
 data/
-  default.json              # 机器人基础人格
+  default.json              # 机器人基础人格（只读，可热重载）
   chats/
     1001234567890.json      # 聊天覆盖配置（ID 不带减号）
   users/
-    123456789.json          # 用户的社交档案
+    123456789.json          # 用户的社交档案（只读，可热重载）
   personal_chats/
-    123456789.json          # 与该用户私聊时的人格
-  relationships.json        # 动态关系（不要提交）
+    123456789.json          # 与该用户私聊时的人格（只读，可热重载）
+  bot.db                    # SQLite：关系、档案、封禁、参与度、私聊上下文
+  bot.db-shm                # SQLite WAL 共享内存文件
+  bot.db-wal                # SQLite WAL 日志文件
 ```
 
 ### `data/default.json`
@@ -186,6 +189,21 @@ data/
 ```
 
 **仅在私聊中生效**。优先级：`chats` > `personal_chats` > `default`。
+
+## 数据库
+
+所有**动态**数据都存储在 `data/bot.db` 中（SQLite，WAL 模式）。机器人永远不会写入 JSON 文件。
+
+| 表 | 用途 |
+|---|---|
+| `relationships` | 每个聊天中每个用户的评分（−5..+5）及历史记录 |
+| `user_profiles` | 聚合的用户统计信息（消息数、攻击率、表情符号使用等） |
+| `social_graph` | 用户之间的有向加权边（冲突 / 友谊） |
+| `bans` | 守卫拒绝次数和封禁到期时间戳 |
+| `chat_engagement` | 最后消息时间、内容历史、去重缓存、进行中的测验 |
+| `private_context` | 私聊对话历史（每个用户保留最近 10 条消息） |
+
+首次启动时，旧版 JSON 文件（`relationships.json`、`user-profiles.json`、`social-graph.json`）会自动导入 SQLite 并重命名为 `*.bak`。
 
 ## 环境变量
 
