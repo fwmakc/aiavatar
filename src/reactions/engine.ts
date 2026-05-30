@@ -1,4 +1,4 @@
-import { config } from '@/config/env';
+import { callSimpleAI } from '@/ai/client';
 
 const AVAILABLE_REACTIONS = [
   { emoji: '👍', label: 'согласен, одобряю, полезно' },
@@ -21,41 +21,16 @@ export async function pickReaction(messageText: string): Promise<string | null> 
 
   const list = AVAILABLE_REACTIONS.map(r => `${r.emoji} — ${r.label}`).join('\n');
 
-  const prompt = `Ты реагируешь на сообщение в рабочем чате программистов. Выбери ОДНУ эмодзи-реакцию, которая лучше всего передаёт твоё отношение к сообщению.
-
-Доступные реакции:
-${list}
-
-Если не хочешь реагировать — ответь: НЕТ.
-
-Сообщение: "${messageText.slice(0, 300)}"
-
-Ответь ТОЛЬКО: одна реакция из списка или НЕТ.`;
+  const prompt = `Ты реагируешь на сообщение в чате. Выбери ОДНУ эмодзи-реакцию, которая лучше всего передаёт твоё отношение к сообщению.\n\nДоступные реакции:\n${list}\n\nЕсли не хочешь реагировать — ответь: НЕТ.\n\nСообщение: "${messageText.slice(0, 300)}"\n\nОтветь ТОЛЬКО: одна реакция из списка или НЕТ.`;
 
   try {
-    const res = await fetch(`${config.aiBaseUrl}/messages`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${config.aiApiKey}`,
-        'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: config.aiModel,
-        max_tokens: 10,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
+    const answer = await callSimpleAI(prompt, undefined, 10);
+    const clean = answer.trim();
 
-    if (!res.ok) return null;
-    const data = await res.json();
-    const answer = data.content?.[0]?.text?.trim() || '';
+    if (clean.includes('НЕТ')) return null;
 
-    if (answer.includes('НЕТ')) return null;
-
-    // Find which reaction emoji was returned
     for (const r of AVAILABLE_REACTIONS) {
-      if (answer.includes(r.emoji)) return r.emoji;
+      if (clean.includes(r.emoji)) return r.emoji;
     }
     return null;
   } catch {

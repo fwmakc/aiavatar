@@ -37,6 +37,7 @@ export interface AppConfig {
   aiBaseUrl: string;
   aiApiKey: string;
   aiModel: string;
+  aiApiFormat: 'anthropic' | 'openai';
   aiTemperature: number;
   aiMaxTokens: number;
   botUsername: string;

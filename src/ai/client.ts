@@ -22,6 +22,25 @@ export async function askAI(
     { role: 'user', content: userText },
   ];
 
+  return callAI(messages, system);
+}
+
+async function callAI(
+  messages: AIMessage[],
+  system: string,
+  maxTokens?: number
+): Promise<string> {
+  if (config.aiApiFormat === 'openai') {
+    return callOpenAI(messages, system, maxTokens);
+  }
+  return callAnthropic(messages, system, maxTokens);
+}
+
+async function callAnthropic(
+  messages: AIMessage[],
+  system: string,
+  maxTokens?: number
+): Promise<string> {
   const res = await fetch(`${config.aiBaseUrl}/messages`, {
     method: 'POST',
     headers: {
@@ -31,10 +50,10 @@ export async function askAI(
     },
     body: JSON.stringify({
       model: config.aiModel,
-      max_tokens: config.aiMaxTokens,
+      max_tokens: maxTokens ?? config.aiMaxTokens,
       temperature: config.aiTemperature,
       system,
-      messages,
+      messages: messages.map(m => ({ role: m.role, content: m.content })),
     }),
   });
 
@@ -43,6 +62,51 @@ export async function askAI(
     throw new Error(`AI API ${res.status}: ${err}`);
   }
 
-  const data = await res.json();
+  const data = await res.json() as { content?: Array<{ text?: string }> };
   return data.content?.[0]?.text ?? '';
+}
+
+async function callOpenAI(
+  messages: AIMessage[],
+  system: string,
+  maxTokens?: number
+): Promise<string> {
+  const openaiMessages = [
+    { role: 'system', content: system },
+    ...messages.map(m => ({ role: m.role, content: m.content })),
+  ];
+
+  const res = await fetch(`${config.aiBaseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${config.aiApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: config.aiModel,
+      max_tokens: maxTokens ?? config.aiMaxTokens,
+      temperature: config.aiTemperature,
+      messages: openaiMessages,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`AI API ${res.status}: ${err}`);
+  }
+
+  const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+  return data.choices?.[0]?.message?.content ?? '';
+}
+
+/**
+ * Universal AI call for simple prompts (screening, tone analysis, etc.)
+ * Replaces direct fetch() calls across the codebase.
+ */
+export async function callSimpleAI(
+  prompt: string,
+  system?: string,
+  maxTokens?: number
+): Promise<string> {
+  return callAI([{ role: 'user', content: prompt }], system ?? '', maxTokens);
 }
