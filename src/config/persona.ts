@@ -66,7 +66,9 @@ function loadDefault(): BotPersona {
 function loadChat(chatId: string | number): BotPersona | null {
   const key = String(chatId);
   if (cachedChats.has(key)) return cachedChats.get(key)!;
-  const cfg = loadJson<BotPersona>(resolve(CHATS_DIR, `${key}.json`));
+  // Chat IDs from Telegram start with '-' (e.g. -100...), but filenames omit it
+  const fileName = key.startsWith('-') ? key.slice(1) : key;
+  const cfg = loadJson<BotPersona>(resolve(CHATS_DIR, `${fileName}.json`));
   if (cfg) cachedChats.set(key, cfg);
   return cfg;
 }
