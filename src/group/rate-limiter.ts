@@ -52,3 +52,8 @@ export function recordGroupReply(chatId: number | string): void {
     }
   }
 }
+
+// Test helper
+export function resetRateLimiter(): void {
+  windows.clear();
+}

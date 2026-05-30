@@ -2,10 +2,12 @@ import Database from 'better-sqlite3';
 import { resolve } from 'path';
 import { readFileSync } from 'fs';
 
-const DB_PATH = resolve(process.cwd(), 'data/bot.db');
+const DB_PATH = process.env.TEST_DB_PATH ?? resolve(process.cwd(), 'data/bot.db');
 
 export const db = new Database(DB_PATH);
-db.pragma('journal_mode = WAL');
+if (!process.env.TEST_DB_PATH) {
+  db.pragma('journal_mode = WAL');
+}
 db.pragma('foreign_keys = ON');
 
 // Initialize schema

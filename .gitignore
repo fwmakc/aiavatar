@@ -12,4 +12,5 @@ user-profiles.json
 user-profiles.json.bak
 social-graph.json
 social-graph.json.bak
+coverage/
 .DS_Store
