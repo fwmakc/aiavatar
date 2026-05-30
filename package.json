@@ -17,8 +17,17 @@
     "chatbot",
     "typescript"
   ],
+  "author": "fwmakc <fwmakc@gmail.com>",
   "license": "Apache-2.0",
   "main": "dist/main.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fwmakc/aiavatar.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fwmakc/aiavatar/issues"
+  },
+  "homepage": "https://github.com/fwmakc/aiavatar#readme",
   "files": [
     "dist/",
     "data/",
