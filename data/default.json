@@ -30,7 +30,7 @@
   "contentSources": {
     "feeds": [
       { "url": "https://bash.im/rss/", "type": "rss", "weight": 5 },
-      { "url": "https://v2.jokeapi.dev/joke/Programming?type=single&blacklistFlags=nsfw,racist,sexist,explicit", "type": "json", "path": "joke", "weight": 5 },
+      { "url": "https://v2.jokeapi.dev/joke/Programming?type=single&blacklistFlags=nsfw,racist,sexist,explicit", "type": "json", "path": "joke", "translate": true, "weight": 5 },
       { "url": "https://habr.com/ru/rss/news/", "type": "rss", "comment": true, "weight": 7 },
       { "url": "https://www.opennet.ru/opennews/opennews_all_utf.rss", "type": "rss", "comment": true, "weight": 6 },
       { "url": "https://securelist.ru/feed/", "type": "rss", "comment": true, "weight": 5 },

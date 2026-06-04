@@ -189,12 +189,10 @@ data/
 
 ```json
 {
-  "persona": {
-    "specialization": "帮奶奶弄手机的孙子",
-    "style": "耐心、温柔",
-    "interests": "园艺、烹饪、苏联电影",
-    "views": "尊重老一辈"
-  }
+  "specialization": "帮奶奶弄手机的孙子",
+  "style": "耐心、温柔",
+  "interests": "园艺、烹饪、苏联电影",
+  "views": "尊重老一辈"
 }
 ```
 

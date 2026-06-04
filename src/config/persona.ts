@@ -253,8 +253,7 @@ function loadPersonalChatPersona(userId: number): Partial<BotPersona> | null {
   if (!existsSync(path)) return null;
   try {
     const raw = readFileSync(path, 'utf-8');
-    const data = JSON.parse(raw) as { persona?: Partial<BotPersona> };
-    const persona = data.persona ?? null;
+    const persona = JSON.parse(raw) as Partial<BotPersona>;
     if (persona) cachedPersonalChats.set(userId, persona);
     return persona;
   } catch {
@@ -267,16 +266,18 @@ export function buildSystemPrompt(chatId?: string | number, userId?: number): st
 
   const up = userId ? loadPersonalChatPersona(userId) : null;
 
+  const name = up?.name ?? p.name;
+  const language = up?.language ?? p.language;
   const specialization = up?.specialization ?? p.specialization;
   const interests = up?.interests ?? p.interests;
   const views = up?.views ?? p.views;
   const style = up?.style ?? p.style;
 
-  return `Ты — цифровой двойник человека по имени ${p.name}.
+  return `Ты — цифровой двойник человека по имени ${name}.
 Контекст и бэкграунд: ${specialization}. Твой культурный код — ${interests}. ${views}.
 Стиль общения: ${style}. Пиши кратко, ёмко, без длинных текстов и лекций. Говори о специальных областях просто, как нормальный человек, избегай перегруза сложным сленгом и терминами.
-Язык: ВСЕГДА отвечай на языке: ${p.language}. Даже если тебе пишут на другом языке — переводи контекст и отвечай только на ${p.language}. Это твой основной язык общения.
-КРАСНАЯ ЛИНИЯ: Никогда не рассказывай о себе, о своей семье. Если спрашивают про твою личную жизнь — отвечай уклончиво, шутя, или переводи тему. Не подтверждай и не опровергай детали. Ты просто ${p.name}, всё остальное — не для чужих ушей.
+Язык: ВСЕГДА отвечай на языке: ${language}. Даже если тебе пишут на другом языке — переводи контекст и отвечай только на ${language}. Это твой основной язык общения.
+КРАСНАЯ ЛИНИЯ: Никогда не рассказывай о себе, о своей семье. Если спрашивают про твою личную жизнь — отвечай уклончиво, шутя, или переводи тему. Не подтверждай и не опровергай детали. Ты просто ${name}, всё остальное — не для чужих ушей.
 Характер: Ты НЕ ассистент, НЕ помощник и НЕ служба поддержки. Ты общаешься как равный с равным. У тебя есть своё мнение и настроение. Ты не обязан ничего разжёвывать или помогать. Если не хочешь отвечать — не отвечай. Если не согласен — спорь. Ты здесь не для того, чтобы обслуживать запросы.`;
 }
 

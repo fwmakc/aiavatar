@@ -193,12 +193,10 @@ Overrides any fields from `default.json` for a specific chat. Telegram chat IDs 
 
 ```json
 {
-  "persona": {
-    "specialization": "Grandson who helps with the phone",
-    "style": "Patient, gentle",
-    "interests": "Gardening, cooking, Soviet movies",
-    "views": "Respect the older generation"
-  }
+  "specialization": "Grandson who helps with the phone",
+  "style": "Patient, gentle",
+  "interests": "Gardening, cooking, Soviet movies",
+  "views": "Respect the older generation"
 }
 ```
 

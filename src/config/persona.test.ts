@@ -48,10 +48,8 @@ describe('persona config', () => {
       },
       'data/personal_chats': {
         '789012.json': JSON.stringify({
-          persona: {
-            specialization: 'Grandson',
-            style: 'gentle',
-          },
+          specialization: 'Grandson',
+          style: 'gentle',
         }),
       },
     });
