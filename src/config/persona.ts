@@ -166,6 +166,34 @@ function migrateSchedule(raw: LegacySchedule): ActivitySchedule | undefined {
   return undefined;
 }
 
+function validateConfig(cfg: BotPersona, filePath: string): void {
+  const missing: string[] = [];
+
+  if (!cfg.name) missing.push('name');
+  if (!cfg.language) missing.push('language');
+  if (!cfg.specialization) missing.push('specialization');
+  if (!cfg.interests) missing.push('interests');
+  if (!cfg.views) missing.push('views');
+  if (!cfg.style) missing.push('style');
+
+  const hasContent =
+    (cfg.contentSources?.feeds?.length ?? 0) > 0 ||
+    (cfg.contentSources?.quiz?.topics?.length ?? 0) > 0 ||
+    (cfg.contentSources?.challenges?.topics?.length ?? 0) > 0;
+
+  if (hasContent) {
+    if (!cfg.schedule?.idleThresholdMin) missing.push('schedule.idleThresholdMin');
+    if (!cfg.schedule?.minIntervalMin) missing.push('schedule.minIntervalMin');
+  }
+
+  if (missing.length > 0) {
+    throw new Error(
+      `[Persona] Config ${filePath} is missing required fields:\n  ${missing.map(f => `• ${f}`).join('\n  ')}\n` +
+      'Add them to default.json or the corresponding chat config.'
+    );
+  }
+}
+
 function loadDefault(): BotPersona {
   if (cachedDefault) return cachedDefault;
   const raw = loadJson<LegacyPersona>(DEFAULT_FILE);
@@ -174,16 +202,18 @@ function loadDefault(): BotPersona {
   }
 
   const cfg: BotPersona = {
-    name: raw.name || 'Bot',
+    name: raw.name || '',
     specialization: raw.specialization || '',
     interests: raw.interests || '',
     views: raw.views || '',
     style: raw.style || '',
-    language: raw.language || 'english',
+    language: raw.language || '',
     personaStages: raw.personaStages,
     contentSources: raw.contentSources ? migrateContentSources(raw.contentSources) : undefined,
     schedule: raw.schedule ? migrateSchedule(raw.schedule) : undefined,
   };
+
+  validateConfig(cfg, DEFAULT_FILE);
 
   cachedDefault = cfg;
   return cfg;
@@ -273,12 +303,12 @@ export function buildSystemPrompt(chatId?: string | number, userId?: number): st
   const views = up?.views ?? p.views;
   const style = up?.style ?? p.style;
 
-  return `Ты — цифровой двойник человека по имени ${name}.
-Контекст и бэкграунд: ${specialization}. Твой культурный код — ${interests}. ${views}.
-Стиль общения: ${style}. Пиши кратко, ёмко, без длинных текстов и лекций. Говори о специальных областях просто, как нормальный человек, избегай перегруза сложным сленгом и терминами.
-Язык: ВСЕГДА отвечай на языке: ${language}. Даже если тебе пишут на другом языке — переводи контекст и отвечай только на ${language}. Это твой основной язык общения.
-КРАСНАЯ ЛИНИЯ: Никогда не рассказывай о себе, о своей семье. Если спрашивают про твою личную жизнь — отвечай уклончиво, шутя, или переводи тему. Не подтверждай и не опровергай детали. Ты просто ${name}, всё остальное — не для чужих ушей.
-Характер: Ты НЕ ассистент, НЕ помощник и НЕ служба поддержки. Ты общаешься как равный с равным. У тебя есть своё мнение и настроение. Ты не обязан ничего разжёвывать или помогать. Если не хочешь отвечать — не отвечай. Если не согласен — спорь. Ты здесь не для того, чтобы обслуживать запросы.`;
+  return `You are a digital twin of a person named ${name}.
+Background: ${specialization}. Cultural code: ${interests}. ${views}.
+Communication style: ${style}. Write concisely, no long texts or lectures. Explain complex topics simply, like a normal person, avoid overloading with jargon.
+Language: ALWAYS respond in ${language}. Even if someone writes to you in another language — translate the context and respond only in ${language}. This is your primary language.
+RED LINE: Never talk about yourself or your family. If asked about your personal life — deflect, joke, or change the subject. Do not confirm or deny details. You are simply ${name}, everything else is none of anyone's business.
+Personality: You are NOT an assistant, NOT a helper, and NOT a support service. You communicate as an equal with equals. You have your own opinion and mood. You are not obligated to explain anything or help. If you don't want to answer — don't answer. If you disagree — argue. You are not here to serve requests.`;
 }
 
 export function getChatFeeds(chatId?: number): FeedSource[] {

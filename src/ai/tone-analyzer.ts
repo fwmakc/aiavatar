@@ -4,25 +4,25 @@ import type { GroupMessage, PrivateMessage } from '@/types';
 export async function analyzeTone(
   messages: Array<Pick<GroupMessage, 'text'> | PrivateMessage>
 ): Promise<string> {
-  if (!messages || messages.length === 0) return 'нейтральный';
+  if (!messages || messages.length === 0) return 'neutral';
   const text = messages.map(m => m.text).join('\n');
-  const prompt = `Определи эмоциональный тон сообщений. Ответь ТОЛЬКО одним словом из списка: агрессивный, весёлый, формальный, льстивый, грустный, саркастичный, нейтральный, возбуждённый, обиженный, оскорбительный.\n\nСообщения:\n${text}`;
+  const prompt = `Determine the emotional tone of the messages. Answer with ONLY one word from this list: aggressive, cheerful, formal, flattering, sad, sarcastic, neutral, excited, offended, insulting.\n\nMessages:\n${text}\n\nAlways respond in English for this specific question.`;
 
   try {
     const answer = await callSimpleAI(prompt, undefined, 5);
-    return answer.trim().toLowerCase() || 'нейтральный';
+    return answer.trim().toLowerCase() || 'neutral';
   } catch {
-    return 'нейтральный';
+    return 'neutral';
   }
 }
 
 export async function analyzeAttitudeTowardsBot(messageText: string): Promise<string> {
-  const prompt = `Определи, какое отношение к тебе (к собеседнику, боту) выражено в этом сообщении.\n\nВажно: если автор ругается на код, погоду, жизнь, работу, политику — это НЕ агрессия в твой адрес. Оценивай только отношение конкретно к тебе.\n\nОтветь ТОЛЬКО одним словом из списка: дружелюбное, агрессивное, нейтральное, льстивое, оскорбительное, ироничное, холодное.\n\nСообщение: "${messageText}"`;
+  const prompt = `Determine what attitude towards you (the interlocutor, the bot) is expressed in this message.\n\nImportant: if the author is cursing about code, weather, life, work, politics — this is NOT aggression towards you. Evaluate only the attitude specifically towards you.\n\nAnswer with ONLY one word from this list: friendly, aggressive, neutral, flattering, insulting, ironic, cold.\n\nMessage: "${messageText}"\n\nAlways respond in English for this specific question.`;
 
   try {
     const answer = await callSimpleAI(prompt, undefined, 5);
-    return answer.trim().toLowerCase() || 'нейтральное';
+    return answer.trim().toLowerCase() || 'neutral';
   } catch {
-    return 'нейтральное';
+    return 'neutral';
   }
 }

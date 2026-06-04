@@ -1,33 +1,32 @@
 import { callSimpleAI } from '@/ai/client';
 
 const AVAILABLE_REACTIONS = [
-  { emoji: '👍', label: 'согласен, одобряю, полезно' },
-  { emoji: '👎', label: 'не согласен, бесполезно, не одобряю' },
-  { emoji: '❤️', label: 'круто, люблю, восторг' },
-  { emoji: '🔥', label: 'огонь, сильно, имба' },
-  { emoji: '😂', label: 'смешно, рофл, абсурд' },
-  { emoji: '🤔', label: 'интересно, сомнительно, задумчиво' },
-  { emoji: '🤯', label: 'взрыв мозга, wow, неожиданно' },
-  { emoji: '😡', label: 'бесит, возмущение, негодование' },
-  { emoji: '💩', label: 'полный бред, треш, фу' },
-  { emoji: '👀', label: 'слежу, скандально, интрига' },
-  { emoji: '🙈', label: 'стыд, кринж, не хочу это видеть' },
-  { emoji: '🎉', label: 'поздравляю, ура, победа' },
+  { emoji: '👍', label: 'agree, approve, useful' },
+  { emoji: '👎', label: 'disagree, useless, disapprove' },
+  { emoji: '❤️', label: 'love, awesome, delight' },
+  { emoji: '🔥', label: 'fire, strong, amazing' },
+  { emoji: '😂', label: 'funny, lol, absurd' },
+  { emoji: '🤔', label: 'interesting, doubtful, thoughtful' },
+  { emoji: '🤯', label: 'mind blown, wow, unexpected' },
+  { emoji: '😡', label: 'angry, outrage, indignation' },
+  { emoji: '💩', label: 'nonsense, trash, ew' },
+  { emoji: '👀', label: 'watching, scandalous, intrigue' },
+  { emoji: '🙈', label: 'shame, cringe, do not want to see' },
+  { emoji: '🎉', label: 'congratulations, hooray, victory' },
 ];
 
 export async function pickReaction(messageText: string): Promise<string | null> {
-  // Skip too short messages
   if (messageText.length < 5) return null;
 
   const list = AVAILABLE_REACTIONS.map(r => `${r.emoji} — ${r.label}`).join('\n');
 
-  const prompt = `Ты реагируешь на сообщение в чате. Выбери ОДНУ эмодзи-реакцию, которая лучше всего передаёт твоё отношение к сообщению.\n\nДоступные реакции:\n${list}\n\nЕсли не хочешь реагировать — ответь: НЕТ.\n\nСообщение: "${messageText.slice(0, 300)}"\n\nОтветь ТОЛЬКО: одна реакция из списка или НЕТ.`;
+  const prompt = `You are reacting to a message in a chat. Choose ONE emoji reaction that best conveys your attitude toward the message.\n\nAvailable reactions:\n${list}\n\nIf you don't want to react — answer: NO.\n\nMessage: "${messageText.slice(0, 300)}"\n\nAnswer with ONLY: one reaction from the list or NO. Always respond in English for this specific question.`;
 
   try {
     const answer = await callSimpleAI(prompt, undefined, 10);
     const clean = answer.trim();
 
-    if (clean.includes('НЕТ')) return null;
+    if (clean.toUpperCase().includes('NO') || clean.toUpperCase().includes('НЕТ')) return null;
 
     for (const r of AVAILABLE_REACTIONS) {
       if (clean.includes(r.emoji)) return r.emoji;

@@ -3,45 +3,31 @@ import type { ContentItem } from '@/content/types';
 import { getChatPersonaConfig } from '@/config/persona';
 import { wasContentPosted } from '@/content/store/state';
 
-const DEFAULT_TOPICS = [
-  'глаза и зрение',
-  'спина и осанка',
-  'запястья и руки',
-  'шея и плечи',
-  'гидратация и питьё воды',
-  'перерывы от экрана',
-  'сухость глаз',
-  'стул и кресло',
-  'разминка ног',
-  'поза при работе',
-  'синий свет и сон',
-  'стресс и выгорание',
-];
-
 export async function getChallengeContent(chatId?: number): Promise<ContentItem | null> {
   const cfg = getChatPersonaConfig(chatId);
-  const topics = cfg.contentSources?.challenges?.topics ?? DEFAULT_TOPICS;
-
-  if (topics.length === 0) return null;
+  const topics = cfg.contentSources?.challenges?.topics;
+  if (!topics || topics.length === 0) return null;
 
   const chatIdNum = chatId ?? 0;
   const topic = topics[Math.floor(Math.random() * topics.length)];
 
-  const prompt = `Ты — заботливый друг в рабочем чате. Напиши ОДНО короткое дружеское напоминание про здоровье коллег: ${topic}.
+  const prompt = `You are a caring friend in a group chat. Write ONE short friendly health reminder about: ${topic}.
 
-Требования:
-- Максимум 2-3 предложения
-- Без слов "челлендж", "задание", "миссия" — просто напоминание от друга
-- Без тегов людей
-- Можно использовать эмодзи
-- Тон: тёплый, не назидательный, слегка шутливый
-- Не используй кавычки в начале и конце
+Requirements:
+- Maximum 2-3 sentences
+- No words like "challenge", "task", "mission" — just a friendly reminder
+- Don't tag people
+- You can use emojis
+- Tone: warm, not preachy, slightly humorous
+- No quotes at the beginning and end
+- Start with a short inviting intro line. Examples: "Let's take a break:", "A quick health pause:", "Take a minute for this:", "I recommend doing this:"
+- Respond in the language from your system prompt
 
-Примеры тона:
-"Слушайте, а вы вставали с кресла хоть раз сегодня? Спина потом скажет спасибо, а пока — потянитесь 🧘"
-"Глаза уже квадратные? Поморгайте 10 раз и посмотрите в окно 20 секунд. Серьёзно, прямо сейчас 👀"
+Example tone:
+"Hey, have you gotten up from your chair at all today? Your back will thank you later — stretch a bit"
+"Eyes getting square? Blink 10 times and look out the window for 20 seconds. Seriously, right now"
 
-Тема: ${topic}`;
+Topic: ${topic}`;
 
   // Try up to 2 times to avoid duplicates
   for (let attempt = 0; attempt < 2; attempt++) {

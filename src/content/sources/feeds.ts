@@ -122,20 +122,19 @@ async function translateIfNeeded(text: string, chatId?: number): Promise<string>
   const latinRatio = (text.match(/[a-zA-Z]/g) || []).length / text.length;
   if (latinRatio < 0.3) return text;
 
-  const prompt = `Переведи этот текст на ${language}. Сохрани смысл, юмор и неформальный тон. Не добавляй ничего от себя, только перевод:\n\n${text}`;
+  const prompt = `Translate this text to ${language}. Preserve the meaning, humor, and informal tone. Do not add anything, just the translation:\n\n${text}`;
   const translated = await askAI(prompt, undefined, 'friendly');
   return translated.trim() || text;
 }
 
-const DEFAULT_FALLBACK_PROMPT = 'Расскажи короткий анекдот или шутку. Максимум 3 предложения. От первого лица — как будто ты сам её вспомнил и хочешь поделиться с чатом.';
-
 export async function getFeedContent(chatId?: number): Promise<ContentItem | null> {
   const cfg = getChatPersonaConfig(chatId);
   const feeds = getChatFeeds(chatId);
-  const fallbackPrompt = cfg.contentSources?.fallbackPrompt ?? DEFAULT_FALLBACK_PROMPT;
   const chatIdNum = chatId ?? 0;
 
   if (feeds.length === 0) {
+    const fallbackPrompt = cfg.contentSources?.fallbackPrompt;
+    if (!fallbackPrompt) return null;
     const text = await askAI(fallbackPrompt, undefined, 'friendly');
     return { type: 'feed', text: text.trim(), tags: ['ai-generated'] };
   }
@@ -162,7 +161,11 @@ export async function getFeedContent(chatId?: number): Promise<ContentItem | nul
     }
 
     if (source.comment) {
-      const commentPrompt = `Напиши короткую заметку (1-2 предложения) от лица айтишника, который casually делится инфой в рабочем чате. Не используй "Вот новость" или "Сообщается". Просто факт + лёгкое мнение.\n\nЗаголовок: ${text.slice(0, 200)}`;
+      const commentPrompt = `Write a short note (1-2 sentences) from the perspective of someone casually sharing info in a group chat. Don't use phrases like "Here's the news" or "It is reported". Just the fact + a light opinion.
+
+Start with a short casual intro line. Examples: "Check this out:", "Look what I found:", "Sharing this with you:", "Stumbled upon this:", "Take a look:"
+
+Title: ${text.slice(0, 200)}`;
       const commentary = await askAI(commentPrompt, undefined, 'friendly');
       text = commentary.trim() || text;
     }
@@ -175,7 +178,9 @@ export async function getFeedContent(chatId?: number): Promise<ContentItem | nul
     };
   }
 
-  console.log(`[Feeds] All sources exhausted for chat ${chatIdNum}, using AI fallback`);
+  console.log(`[Feeds] All sources exhausted for chat ${chatIdNum}`);
+  const fallbackPrompt = cfg.contentSources?.fallbackPrompt;
+  if (!fallbackPrompt) return null;
   const text = await askAI(fallbackPrompt, undefined, 'friendly');
   return { type: 'feed', text: text.trim(), tags: ['ai-generated'] };
 }

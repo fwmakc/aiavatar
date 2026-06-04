@@ -37,18 +37,10 @@ export async function generateContent(chatId: number): Promise<ContentItem | nul
   const generator = CONTENT_GENERATORS[type];
 
   try {
-    const item = await generator(chatId);
-    if (!item) {
-      return getFeedContent(chatId);
-    }
-    return item;
+    return await generator(chatId);
   } catch (e) {
     console.error(`Content generation failed for type ${type}:`, e);
-    try {
-      return await getFeedContent(chatId);
-    } catch {
-      return null;
-    }
+    return null;
   }
 }
 

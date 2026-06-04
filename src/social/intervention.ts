@@ -11,15 +11,15 @@ export interface ConflictContext {
     recentMessages: string[];
   }>;
   topic: string;
-  escalationLevel: number; // 1..5
+  escalationLevel: number;
 }
 
 const FALLBACKS = [
-  'Ребята, давайте не ссориться. Мы ж тут свои.',
-  'Эй, эй, полегче. Дышим носом, выдыхаем ртом.',
-  'Чё так накаляетесь? Выпейте чаю, отдохните.',
-  'Давайте без мата, а? Мы же культурные люди.',
-  'Ого, страсти-то какие. Может, передохнём?',
+  'Guys, let\'s not fight. We\'re all friends here.',
+  'Hey, hey, take it easy. Breathe.',
+  'Why so heated? Take a break, have some tea.',
+  'Let\'s keep it civil, alright?',
+  'Whoa, intense. Maybe we should take a breather?',
 ];
 
 export async function generateIntervention(context: ConflictContext): Promise<string | null> {
@@ -31,18 +31,18 @@ export async function generateIntervention(context: ConflictContext): Promise<st
     const p = context.participants[0];
     const botScore = relationships.get(0, p.userId).score;
     const hint = botScore < -2
-      ? `Ты не очень ладишь с ${p.name}, но всё равно попробуй успокоить.`
-      : `Ты нормально относишься к ${p.name}, можешь подколоть, но не оскорбляй.`;
+      ? `You don't get along well with ${p.name}, but still try to calm them down.`
+      : `You have a normal attitude toward ${p.name}, you can tease a bit, but don't insult.`;
 
-    prompt = `Ты — участник чата, один из своих. ${hint}
+    prompt = `You are a participant in the chat, one of the group. ${hint}
 
-${p.name} пишет агрессивные/оскорбительные сообщения:
+${p.name} is writing aggressive/insulting messages:
 ${p.recentMessages.map(m => `${p.name}: "${m}"`).join('\n')}
 
-Тема: ${context.topic}
-Накал: ${context.escalationLevel}/5
+Topic: ${context.topic}
+Escalation: ${context.escalationLevel}/5
 
-Вмешайся естественно. Используй имя. Не говори, что ты бот. Будь своим. 1-2 предложения. Можно с юмором.`;
+Intervene naturally. Use their name. Don't say you're a bot. Be one of the group. 1-2 sentences. Humor is welcome. Respond in the language from your system prompt.`;
   } else {
     const [p1, p2] = context.participants;
     const botScore1 = relationships.get(0, p1.userId).score;
@@ -51,27 +51,27 @@ ${p.recentMessages.map(m => `${p.name}: "${m}"`).join('\n')}
 
     let relationshipHint = '';
     if (botScore1 > botScore2 + 2) {
-      relationshipHint = `Ты ближе к ${p1.name}, чем к ${p2.name}. Можешь слегка поддержать ${p1.name}, но не унижать ${p2.name}.`;
+      relationshipHint = `You are closer to ${p1.name} than to ${p2.name}. You can slightly support ${p1.name}, but don't humiliate ${p2.name}.`;
     } else if (botScore2 > botScore1 + 2) {
-      relationshipHint = `Ты ближе к ${p2.name}, чем к ${p1.name}. Можешь слегка поддержать ${p2.name}, но не унижать ${p1.name}.`;
+      relationshipHint = `You are closer to ${p2.name} than to ${p1.name}. You can slightly support ${p2.name}, but don't humiliate ${p1.name}.`;
     } else {
-      relationshipHint = `Ты нейтрален к обоим. Постарайся разрядить обстановку или переформулировать спор.`;
+      relationshipHint = `You are neutral toward both. Try to defuse the situation or reframe the argument.`;
     }
 
-    prompt = `Ты — участник чата, один из своих. ${relationshipHint}
+    prompt = `You are a participant in the chat, one of the group. ${relationshipHint}
 
-В чате спор:
-${p1.name}: "${p1.recentMessages.join('"\n' + p1.name + ': "')}"  
-${p2.name}: "${p2.recentMessages.join('"\n' + p2.name + ': "')}"  
+There is an argument in the chat:
+${p1.name}: "${p1.recentMessages.join('"\n' + p1.name + ': "')}"
+${p2.name}: "${p2.recentMessages.join('"\n' + p2.name + ': "')}"
 
-Тема спора: ${context.topic}
-Накал: ${context.escalationLevel}/5
+Argument topic: ${context.topic}
+Escalation: ${context.escalationLevel}/5
 
-Вмешайся естественно. Используй имя того, к кому обращаешься. Не говори, что ты бот. Будь своим. 1-2 предложения. Можно с юмором.`;
+Intervene naturally. Use the name of whoever you're addressing. Don't say you're a bot. Be one of the group. 1-2 sentences. Humor is welcome. Respond in the language from your system prompt.`;
   }
 
   try {
-    const result = await askAI(prompt, buildSystemPrompt(), 'нейтральный');
+    const result = await askAI(prompt, buildSystemPrompt(), 'neutral');
     if (result && result.trim().length > 5) return result.trim();
     return FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)];
   } catch {
@@ -87,13 +87,11 @@ export function shouldIntervene(
   if (!groupActiveMode) return false;
   if (replyChain.length < 3) return false;
 
-  // Проверяем нарастающий негатив в цепочке (последние 3 сообщения)
   const recent = replyChain.slice(-3);
   const negativeCount = recent.filter(m =>
-    m.tone.includes('агрес') || m.tone.includes('оскорб') || m.tone.includes('злоб') || m.tone.includes('враж')
+    m.tone.includes('aggres') || m.tone.includes('insult') || m.tone.includes('hostile')
   ).length;
 
-  // Если 2+ из последних 3 сообщений агрессивные — вмешиваемся ВСЕГДА
   if (negativeCount >= 2) {
     return true;
   }

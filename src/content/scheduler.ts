@@ -13,9 +13,6 @@ import {
 } from '@/content/store/state';
 import type { ContentItem } from '@/content/types';
 
-const DEFAULT_IDLE_THRESHOLD_MIN = 60;
-const DEFAULT_MIN_INTERVAL_MIN = 120;
-
 const CHECK_5_MIN = 5 * 60 * 1000;
 const CHECK_10_MIN = 10 * 60 * 1000;
 const CHECK_30_MIN = 30 * 60 * 1000;
@@ -81,10 +78,10 @@ async function runCheckCycle(): Promise<void> {
   checkTimer = setTimeout(runCheckCycle, nextDelay);
 }
 
-function shouldPostToChat(chatId: number): boolean {
+async function shouldPostToChat(chatId: number): Promise<boolean> {
   const cfg = getChatPersonaConfig(chatId);
-  const idleThreshold = (cfg.schedule?.idleThresholdMin ?? DEFAULT_IDLE_THRESHOLD_MIN) * 60 * 1000;
-  const minInterval = (cfg.schedule?.minIntervalMin ?? DEFAULT_MIN_INTERVAL_MIN) * 60 * 1000;
+  const idleThreshold = (cfg.schedule?.idleThresholdMin ?? 60) * 60 * 1000;
+  const minInterval = (cfg.schedule?.minIntervalMin ?? 120) * 60 * 1000;
 
   const state = getChatState(chatId);
   const now = Date.now();
@@ -133,43 +130,15 @@ async function checkAllChats(): Promise<void> {
   }
 }
 
-const INTROS: Record<string, string[]> = {
-  feed: [
-    'Вот кое-что интересное:',
-    'Смотрите, нашёл:',
-    'Поделюсь с вами:',
-    'Наткнулся на это:',
-    'Зацените:',
-  ],
-  quiz: [
-    'Давайте поиграем?',
-    'Кто хочет тест?',
-    'Проверим мозги?',
-    'Вопрос на засыпку:',
-  ],
-  challenge: [
-    'Давайте разомнёмся:',
-    'Небольшая пауза на здоровье:',
-    'Отвлекитесь на минутку:',
-    'Рекомендую сделать вот это:',
-  ],
-};
-
-function pickIntro(type: string): string {
-  const pool = INTROS[type] || ['Вот кое-что:'];
-  return pool[Math.floor(Math.random() * pool.length)];
-}
-
 async function postContent(chatId: number, item: ContentItem): Promise<void> {
-  const intro = pickIntro(item.type);
-  let messageText = `${intro}\n\n${item.text}`;
+  let messageText = item.text;
   if (item.link) {
     messageText += `\n\n👉 ${item.link}`;
   }
 
   if (item.type === 'quiz' && item.options && item.correctIndex !== undefined) {
-    const question = item.text.replace(/^🧠\s*/, '').replace(/<[^>]+>/g, '');
-    await bot.telegram.sendPoll(chatId, `${intro}\n\n${question}`, item.options, {
+    const question = messageText.replace(/<[^>]+>/g, '');
+    await bot.telegram.sendPoll(chatId, question, item.options, {
       type: 'quiz',
       correct_option_id: item.correctIndex,
       is_anonymous: false,

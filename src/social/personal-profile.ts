@@ -6,58 +6,55 @@ import { privateContextManager } from '@/private-context';
 import { relationshipGraph } from './relationship-graph';
 
 export async function generatePersonalProfile(userId: number): Promise<string> {
-  const rel = relationships.get(userId, userId); // ЛС чат = userId
+  const rel = relationships.get(userId, userId);
   const profile = userProfileManager.getProfile(userId);
   const lsHistory = privateContextManager.getContext(userId);
   const graphEdges = relationshipGraph.getAllEdges(userId);
 
-  // Топ тем
   const topics = profile
     ? Array.from(profile.topics.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5)
     : [];
 
-  // Топ триггеров (по агрессивным сообщениям)
-  const triggers = profile?.triggers?.length ? profile.triggers.slice(0, 5) : ['нет данных'];
+  const triggers = profile?.triggers?.length ? profile.triggers.slice(0, 5) : ['no data'];
 
-  // Топ эмодзи
   const emojis = profile
     ? Array.from(profile.emojiTop.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3)
     : [];
 
-  const prompt = `Ты — проницательный психолог и друг. Составь для человека его психологический портрет на основе данных. Будь честен, но мягок. Используй "ты". Не более 10 предложений.
+  const prompt = `You are a perceptive psychologist and friend. Create a psychological portrait of a person based on data. Be honest but gentle. Use "you". No more than 10 sentences. Respond in the language from your system prompt.
 
-Данные:
-- Лояльность к боту: ${rel.score}/5 (${rel.score > 0 ? 'дружелюбен' : rel.score < 0 ? 'насторожен' : 'нейтрален'})
-- Сообщений проанализировано: ${profile?.messageCount || 0}
-- Средняя длина сообщения: ${profile?.avgMessageLength.toFixed(0) || '???'} символов
-- Уровень агрессии: ${profile ? (profile.aggressionRate * 100).toFixed(0) : '???'}%
-- Топ тем: ${topics.map(t => t[0]).join(', ') || 'нет данных'}
-- Частые триггеры: ${triggers.join(', ')}
-- Любимые эмодзи: ${emojis.map(e => e[0]).join(' ') || 'нет данных'}
-- Связи в группах: ${graphEdges.length} человек
-${graphEdges.filter(e => e.weight < -3).length > 0 ? `- Конфликты с: ${graphEdges.filter(e => e.weight < -3).map(e => e.targetUserId).join(', ')}` : '- Конфликтов не выявлено'}
+Data:
+- Loyalty to bot: ${rel.score}/5 (${rel.score > 0 ? 'friendly' : rel.score < 0 ? 'wary' : 'neutral'})
+- Messages analyzed: ${profile?.messageCount || 0}
+- Average message length: ${profile?.avgMessageLength.toFixed(0) || '???'} characters
+- Aggression level: ${profile ? (profile.aggressionRate * 100).toFixed(0) : '???'}%
+- Top topics: ${topics.map(t => t[0]).join(', ') || 'no data'}
+- Frequent triggers: ${triggers.join(', ')}
+- Favorite emojis: ${emojis.map(e => e[0]).join(' ') || 'no data'}
+- Group connections: ${graphEdges.length} people
+${graphEdges.filter(e => e.weight < -3).length > 0 ? `- Conflicts with: ${graphEdges.filter(e => e.weight < -3).map(e => e.targetUserId).join(', ')}` : '- No conflicts identified'}
 
-История ЛС (последние 10 сообщений):
-${lsHistory || '(мало данных)'}
+DM history (last 10 messages):
+${lsHistory || '(not enough data)'}
 
-Составь портрет. Можно с юмором, но без жести.`;
+Create a portrait. You can use humor, but keep it light.`;
 
   try {
     return await askAI(prompt, buildSystemPrompt());
   } catch {
-    return 'Пока недостаточно данных для портрета. Поболтай со мной побольше! 🙂';
+    return 'Not enough data for a portrait yet. Chat with me more!';
   }
 }
 
 export function getReconciliationOpening(userId: number): string | null {
   const score = relationships.get(userId, userId).score;
-  if (score >= -1) return null; // Нет необходимости
+  if (score >= -1) return null;
 
   const openings: Record<number, string> = {
-    [-5]: 'Слушай, честно? Ты мне сильно надоел. Но я готов поговорить, если ты готов выслушать.',
-    [-4]: 'Между нами не ладится. Но я не хочу держать зло — можем обсудить?',
-    [-3]: 'Ты меня расстроил в последнее время. Но давай попробуем наладить контакт.',
-    [-2]: 'У нас с тобой какая-то напряжённость. Давай разберёмся?',
+    [-5]: 'Honestly? You\'ve really annoyed me. But I\'m willing to talk if you\'re willing to listen.',
+    [-4]: 'Things aren\'t going well between us. But I don\'t want to hold a grudge — can we discuss it?',
+    [-3]: 'You\'ve upset me lately. But let\'s try to fix things.',
+    [-2]: 'There\'s some tension between us. Shall we work it out?',
   };
 
   return openings[score] || openings[-2];
@@ -66,16 +63,16 @@ export function getReconciliationOpening(userId: number): string | null {
 export async function processReconciliation(userId: number, userText: string): Promise<string> {
   const score = relationships.get(userId, userId).score;
 
-  const prompt = `Ты — ИИ-аватар. Пользователь хочет помириться/наладить отношения.
-Текущий score: ${score}/5 (отрицательный = обида).
-Пользователь написал: "${userText}"
+  const prompt = `You are an AI avatar. The user wants to make peace / improve the relationship.
+Current score: ${score}/5 (negative = resentment).
+The user wrote: "${userText}"
 
-Ответь естественно. Если он искренен — прими извинения/попытку. Если он троллит — холодно отвергни.
-Не меняй score здесь, просто ответь. 1-3 предложения.`;
+Respond naturally. If they are sincere — accept the apology / attempt. If they are trolling — coldly reject.
+Don't change the score here, just respond. 1-3 sentences. Respond in the language from your system prompt.`;
 
   try {
     return await askAI(prompt, buildSystemPrompt());
   } catch {
-    return 'Посмотрим...';
+    return 'We\'ll see...';
   }
 }
