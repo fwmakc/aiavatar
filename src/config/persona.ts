@@ -1,6 +1,7 @@
 import { readFileSync, existsSync, readdirSync, watch, mkdirSync } from 'fs';
 import { resolve } from 'path';
 import type { FeedSource } from '@/content/types';
+import type { ToolConfig } from '@/types';
 
 export interface ActivitySchedule {
   activeHours?: {
@@ -39,6 +40,7 @@ export interface BotPersona {
     };
   };
   schedule?: ActivitySchedule;
+  tools?: ToolConfig;
 }
 
 const DATA_DIR = resolve(process.cwd(), 'data');
@@ -273,6 +275,9 @@ export function getChatPersonaConfig(chatId?: string | number): BotPersona {
     personaStages: {
       ...base.personaStages,
       ...override.personaStages,
+    },
+    tools: {
+      webSearch: override.tools?.webSearch ?? base.tools?.webSearch,
     },
   };
 }

@@ -161,6 +161,8 @@ data/
 | `schedule.idleThresholdMin` | 发布前需要沉默的分钟数（设置了 contentSources 时必填） |
 | `schedule.minIntervalMin` | 两次发布之间的最小分钟数（设置了 contentSources 时必填） |
 | `personaStages` | 关系动态的情感阶段（见下文） |
+| `tools.webSearch.enabled` | 启用网页搜索以验证直接提问的事实（默认 false） |
+| `tools.webSearch.provider` | 搜索提供商：`serper` 或 `brave`（默认 serper） |
 
 #### `personaStages`
 
@@ -270,6 +272,27 @@ data/
 > 对每个源提供：URL、类型（rss或json）、是否需要翻译、AI评论是否有价值。
 > 将回答格式化为可直接粘贴到 `contentSources.feeds` 的JSON数组。
 
+## 网页搜索（事实核查）
+
+启用后，机器人会在回答直接的事实性问题之前执行网页搜索，用真实数据和来源丰富 AI 提示词，从而消除事实查询中的幻觉。
+
+- **仅在直接交互时触发**（回复、提及或私聊）且消息看起来像问题
+- **按聊天配置** — 为专业聊天（律师、历史学家、科学家）启用，为日常聊天禁用
+- **支持两个提供商：**[Serper.dev](https://serper.dev)（Google 结果）和 [Brave Search](https://brave.com/search/api/)（免费额度：2000次/月）
+- **无 API 密钥 = 无搜索** — 机器人照常工作
+
+在聊天配置中启用：
+```json
+{
+  "tools": {
+    "webSearch": {
+      "enabled": true,
+      "provider": "serper"
+    }
+  }
+}
+```
+
 ## 数据库
 
 所有**动态**数据都存储在 `data/bot.db` 中（SQLite，WAL 模式）。机器人永远不会写入 JSON 文件。
@@ -312,6 +335,8 @@ data/
 | `TIT_FOR_TAT_MODE` | 启用动态关系 |
 | `CONTENT_ENGINE_ENABLED` | 启用内容引擎 |
 | `BAN_DURATION_HOURS` | 封禁时长（小时） |
+| `SERPER_API_KEY` | Serper.dev 网页搜索 API 密钥（可选） |
+| `BRAVE_API_KEY` | Brave Search 网页搜索 API 密钥（可选） |
 
 ## 私聊命令
 

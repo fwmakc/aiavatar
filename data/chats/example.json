@@ -78,5 +78,11 @@
     "activeDays": [5, 6, 7],
     "idleThresholdMin": 60,
     "minIntervalMin": 120
+  },
+  "tools": {
+    "webSearch": {
+      "enabled": true,
+      "provider": "serper"
+    }
   }
 }

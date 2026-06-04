@@ -19,6 +19,8 @@ import { pickReaction } from '@/reactions/engine';
 import { canReplyInGroup, recordGroupReply } from '@/group/rate-limiter';
 import { isQuietTime } from '@/schedule/checker';
 import { getMemoryContext } from '@/memory/context';
+import { createSearchProvider, formatSearchResults } from '@/ai/tools/web-search';
+import { getChatPersonaConfig } from '@/config/persona';
 
 function isAllowedUser(ctx: Context): boolean {
   const userId = String(ctx.from?.id ?? '');
@@ -330,7 +332,11 @@ export function setupMessageHandler(): void {
       const memoryChatId = isPrivate ? (userId ?? 0) : -(Math.abs(chatId));
       const memoryContext = getMemoryContext(memoryChatId);
       const memoryBlock = memoryContext ? `\n\n${memoryContext}` : '';
-      const fullSystemPrompt = `${basePrompt}${memoryBlock}\n\n${relPrompt}${peoplePrompt}${slangPrompt}${noQuestionPrompt}${noInsultPrompt}`;
+      let searchBlock = '';
+      if (isDirectInteraction) {
+        searchBlock = await tryWebSearch(chatId, cleanText);
+      }
+      const fullSystemPrompt = `${basePrompt}${memoryBlock}${searchBlock}\n\n${relPrompt}${peoplePrompt}${slangPrompt}${noQuestionPrompt}${noInsultPrompt}`;
 
       let aiReply: string;
       // Режим помирования в ЛС (score < 0)
@@ -379,6 +385,38 @@ export function setupMessageHandler(): void {
       }
     }
   });
+}
+
+const QUESTION_WORDS = /\b(что|как|почему|зачем|где|когда|кто|сколько|какой|какая|какие|чей|which|what|where|when|why|who|how|how many|how much)\b/i;
+
+function looksLikeQuestion(text: string): boolean {
+  if (text.includes('?') || text.includes('？')) return true;
+  return QUESTION_WORDS.test(text);
+}
+
+async function tryWebSearch(chatId: number, text: string): Promise<string> {
+  if (!looksLikeQuestion(text)) return '';
+
+  const cfg = getChatPersonaConfig(chatId);
+  const webSearch = cfg.tools?.webSearch;
+  if (!webSearch?.enabled) return '';
+
+  const apiKeyEnv = webSearch.apiKeyEnv ?? (webSearch.provider === 'brave' ? 'BRAVE_API_KEY' : 'SERPER_API_KEY');
+  const apiKey = process.env[apiKeyEnv];
+  if (!apiKey) return '';
+
+  try {
+    const provider = createSearchProvider(webSearch.provider, apiKey);
+    const results = await provider.search(text);
+    if (results.length === 0) return '';
+
+    const formatted = formatSearchResults(results);
+    console.log(`[WebSearch] chat ${chatId}: ${results.length} results for "${text.slice(0, 50)}"`);
+    return `\n\n${formatted}`;
+  } catch (e) {
+    console.error('[WebSearch] Error:', e);
+    return '';
+  }
 }
 
 // === Социальное вмешательство ===

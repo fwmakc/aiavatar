@@ -32,6 +32,16 @@ export interface PrivateMessage {
   text: string;
 }
 
+export interface WebSearchConfig {
+  enabled: boolean;
+  provider: 'serper' | 'brave';
+  apiKeyEnv?: string;
+}
+
+export interface ToolConfig {
+  webSearch?: WebSearchConfig;
+}
+
 export interface AppConfig {
   telegramBotToken: string;
   aiBaseUrl: string;

@@ -165,6 +165,8 @@ data/
 | `schedule.idleThresholdMin` | Minutes of silence before posting (required if contentSources set) |
 | `schedule.minIntervalMin` | Minimum minutes between posts (required if contentSources set) |
 | `personaStages` | Emotional stages for relationship dynamics (see below) |
+| `tools.webSearch.enabled` | Enable web search for fact-checking direct questions (default false) |
+| `tools.webSearch.provider` | Search provider: `serper` or `brave` (default serper) |
 
 #### `personaStages`
 
@@ -274,6 +276,27 @@ Copy this prompt into an AI chat, replacing the parameters to get ideal feed sou
 > For each source provide: URL, type (rss or json), whether it needs translation, and whether AI commentary would add value.
 > Format the response as a JSON array ready to paste into `contentSources.feeds`.
 
+## Web Search (Fact-Checking)
+
+When enabled, the bot performs a web search before answering direct factual questions, enriching the AI prompt with real data and sources. This eliminates hallucinations for factual queries.
+
+- **Triggered only for direct interactions** (reply, mention, or DM) that look like questions
+- **Per-chat configuration** — enable for professional chats (lawyers, historians, scientists), disable for casual ones
+- **Two providers supported:** [Serper.dev](https://serper.dev) (Google results) and [Brave Search](https://brave.com/search/api/) (free tier: 2000/month)
+- **No API key = no search** — the bot works normally without it
+
+Enable in chat config:
+```json
+{
+  "tools": {
+    "webSearch": {
+      "enabled": true,
+      "provider": "serper"
+    }
+  }
+}
+```
+
 ## Database
 
 All **dynamic** data is stored in `data/bot.db` (SQLite, WAL mode). The bot never writes to JSON files.
@@ -316,6 +339,8 @@ See [`.env.example`](.env.example).
 | `TIT_FOR_TAT_MODE` | Enable dynamic relationships |
 | `CONTENT_ENGINE_ENABLED` | Enable content engine |
 | `BAN_DURATION_HOURS` | Ban duration (hours) |
+| `SERPER_API_KEY` | API key for Serper.dev web search (optional) |
+| `BRAVE_API_KEY` | API key for Brave Search web search (optional) |
 
 ## DM Commands
 
