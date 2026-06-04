@@ -8,6 +8,26 @@
 
 A Telegram bot with a modular persona, social intelligence, and a content engine. A digital twin that remembers people, adapts to chats, posts content on schedule, and intervenes in arguments — all via JSON configs without touching the code.
 
+## Who is this for?
+
+**Designed for small to medium Telegram groups (3–50 people) with low to moderate activity.**
+
+A single bot instance can serve multiple chats, each with its own personality — a cynical senior dev in one chat, a caring family helper in another.
+
+### Perfect for
+
+- **Reviving quiet chats** — posts news, quizzes, and challenges when the chat goes idle, sparking discussion and engagement
+- **Digital twin with memory** — remembers past conversations via tiered memory (day → week → month), recognizes people, tracks relationships
+- **Moderating toxicity** — detects escalating conflicts, intervenes with humor, mirrors bad behavior back at offenders (tit-for-tat mode)
+- **Different personas per chat** — configure personality, interests, content sources, and schedule independently for each group via JSON overrides
+- **Niche communities** — developer teams, family chats, friend circles, interest groups where a generic bot feels out of place
+
+### Not designed for
+
+- High-throughput groups with thousands of active users sending hundreds of messages per minute
+- Enterprise-grade support automation or customer service
+- Replacement for full RAG / vector database / knowledge management systems
+
 ## Features
 
 ### 🎭 Modular Persona
