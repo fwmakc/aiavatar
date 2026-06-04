@@ -398,7 +398,7 @@ async function tryWebSearch(chatId: number, text: string): Promise<string> {
   if (!looksLikeQuestion(text)) return '';
 
   const cfg = getChatPersonaConfig(chatId);
-  const webSearch = cfg.tools?.webSearch;
+  const webSearch = cfg.webSearch;
   if (!webSearch?.enabled) return '';
 
   const apiKeyEnv = webSearch.apiKeyEnv ?? (webSearch.provider === 'brave' ? 'BRAVE_API_KEY' : 'SERPER_API_KEY');

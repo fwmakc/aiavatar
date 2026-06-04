@@ -38,10 +38,6 @@ export interface WebSearchConfig {
   apiKeyEnv?: string;
 }
 
-export interface ToolConfig {
-  webSearch?: WebSearchConfig;
-}
-
 export interface AppConfig {
   telegramBotToken: string;
   aiBaseUrl: string;

@@ -161,8 +161,8 @@ data/
 | `schedule.idleThresholdMin` | Минут тишины перед постом (обязательно, если заданы contentSources) |
 | `schedule.minIntervalMin` | Минимум минут между постами (обязательно, если заданы contentSources) |
 | `personaStages` | Эмоциональные стадии для динамики отношений (см. ниже) |
-| `tools.webSearch.enabled` | Включить веб-поиск для фактчекинга прямых вопросов (по умолчанию false) |
-| `tools.webSearch.provider` | Провайдер поиска: `serper` или `brave` (по умолчанию serper) |
+| `webSearch.enabled` | Включить веб-поиск для фактчекинга прямых вопросов (по умолчанию false) |
+| `webSearch.provider` | Провайдер поиска: `serper` или `brave` (по умолчанию serper) |
 
 #### `personaStages`
 
@@ -284,11 +284,9 @@ data/
 Включение в конфиге чата:
 ```json
 {
-  "tools": {
-    "webSearch": {
-      "enabled": true,
-      "provider": "serper"
-    }
+  "webSearch": {
+    "enabled": true,
+    "provider": "serper"
   }
 }
 ```

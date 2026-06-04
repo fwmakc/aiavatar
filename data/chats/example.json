@@ -79,10 +79,8 @@
     "idleThresholdMin": 60,
     "minIntervalMin": 120
   },
-  "tools": {
-    "webSearch": {
-      "enabled": true,
-      "provider": "serper"
-    }
+  "webSearch": {
+    "enabled": true,
+    "provider": "serper"
   }
 }

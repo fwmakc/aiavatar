@@ -165,8 +165,8 @@ data/
 | `schedule.idleThresholdMin` | Minutes of silence before posting (required if contentSources set) |
 | `schedule.minIntervalMin` | Minimum minutes between posts (required if contentSources set) |
 | `personaStages` | Emotional stages for relationship dynamics (see below) |
-| `tools.webSearch.enabled` | Enable web search for fact-checking direct questions (default false) |
-| `tools.webSearch.provider` | Search provider: `serper` or `brave` (default serper) |
+| `webSearch.enabled` | Enable web search for fact-checking direct questions (default false) |
+| `webSearch.provider` | Search provider: `serper` or `brave` (default serper) |
 
 #### `personaStages`
 
@@ -288,11 +288,9 @@ When enabled, the bot performs a web search before answering direct factual ques
 Enable in chat config:
 ```json
 {
-  "tools": {
-    "webSearch": {
-      "enabled": true,
-      "provider": "serper"
-    }
+  "webSearch": {
+    "enabled": true,
+    "provider": "serper"
   }
 }
 ```

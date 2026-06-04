@@ -161,8 +161,8 @@ data/
 | `schedule.idleThresholdMin` | 发布前需要沉默的分钟数（设置了 contentSources 时必填） |
 | `schedule.minIntervalMin` | 两次发布之间的最小分钟数（设置了 contentSources 时必填） |
 | `personaStages` | 关系动态的情感阶段（见下文） |
-| `tools.webSearch.enabled` | 启用网页搜索以验证直接提问的事实（默认 false） |
-| `tools.webSearch.provider` | 搜索提供商：`serper` 或 `brave`（默认 serper） |
+| `webSearch.enabled` | 启用网页搜索以验证直接提问的事实（默认 false） |
+| `webSearch.provider` | 搜索提供商：`server` 或 `brave`（默认 server） |
 
 #### `personaStages`
 
@@ -284,11 +284,9 @@ data/
 在聊天配置中启用：
 ```json
 {
-  "tools": {
-    "webSearch": {
-      "enabled": true,
-      "provider": "serper"
-    }
+  "webSearch": {
+    "enabled": true,
+    "provider": "serper"
   }
 }
 ```
