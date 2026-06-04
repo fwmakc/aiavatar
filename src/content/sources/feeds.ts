@@ -123,7 +123,8 @@ async function translateIfNeeded(text: string, chatId?: number): Promise<string>
   if (latinRatio < 0.3) return text;
 
   const prompt = `Translate this text to ${language}. Preserve the meaning, humor, and informal tone. Do not add anything, just the translation:\n\n${text}`;
-  const translated = await askAI(prompt, undefined, 'friendly');
+  const translated = await askAI(prompt, undefined, 'friendly', [], 'low');
+
   return translated.trim() || text;
 }
 
@@ -135,7 +136,7 @@ export async function getFeedContent(chatId?: number): Promise<ContentItem | nul
   if (feeds.length === 0) {
     const fallbackPrompt = cfg.contentSources?.fallbackPrompt;
     if (!fallbackPrompt) return null;
-    const text = await askAI(fallbackPrompt, undefined, 'friendly');
+    const text = await askAI(fallbackPrompt, undefined, 'friendly', [], 'low');
     return { type: 'feed', text: text.trim(), tags: ['ai-generated'] };
   }
 
@@ -166,7 +167,7 @@ export async function getFeedContent(chatId?: number): Promise<ContentItem | nul
 Start with a short casual intro line. Examples: "Check this out:", "Look what I found:", "Sharing this with you:", "Stumbled upon this:", "Take a look:"
 
 Title: ${text.slice(0, 200)}`;
-      const commentary = await askAI(commentPrompt, undefined, 'friendly');
+      const commentary = await askAI(commentPrompt, undefined, 'friendly', [], 'low');
       text = commentary.trim() || text;
     }
 
@@ -181,6 +182,6 @@ Title: ${text.slice(0, 200)}`;
   console.log(`[Feeds] All sources exhausted for chat ${chatIdNum}`);
   const fallbackPrompt = cfg.contentSources?.fallbackPrompt;
   if (!fallbackPrompt) return null;
-  const text = await askAI(fallbackPrompt, undefined, 'friendly');
+  const text = await askAI(fallbackPrompt, undefined, 'friendly', [], 'low');
   return { type: 'feed', text: text.trim(), tags: ['ai-generated'] };
 }

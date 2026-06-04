@@ -1,5 +1,6 @@
 import { callSimpleAI } from '@/ai/client';
 import type { BufferedMessage, ChatMemory } from '@/memory/store';
+import type { Priority } from '@/ai/queue';
 
 const TIER_LABELS: Record<string, string> = {
   day: 'from the last 24 hours',
@@ -38,7 +39,7 @@ Rules:
 Output only the merged summary, nothing else.`;
 
   try {
-    const result = await callSimpleAI(prompt, undefined, 1024);
+    const result = await callSimpleAI(prompt, undefined, 1024, 'low' as Priority);
     return result.trim() || (existingSummary || '');
   } catch (e) {
     console.error('[Memory:Summarizer] Summarization failed:', e);
@@ -72,7 +73,7 @@ Rules:
 Output only the merged summary, nothing else.`;
 
   try {
-    const result = await callSimpleAI(prompt, undefined, 1024);
+    const result = await callSimpleAI(prompt, undefined, 1024, 'low' as Priority);
     return result.trim() || '';
   } catch (e) {
     console.error('[Memory:Summarizer] Tier consolidation failed:', e);

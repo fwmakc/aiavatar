@@ -17,6 +17,7 @@ export const config: AppConfig = {
   aiTemperature: parseFloat(process.env.AI_TEMPERATURE || '0.7'),
   aiMaxTokens: parseInt(process.env.AI_MAX_TOKENS || '4096', 10),
   aiApiFormat: (process.env.AI_API_FORMAT || 'anthropic') as 'anthropic' | 'openai',
+  aiConcurrency: parseInt(process.env.AI_CONCURRENCY || '2', 10),
   botUsername: getEnv('BOT_USERNAME'),
   proxyUrl: process.env.PROXY_URL,
   allowedUsers: (process.env.ALLOWED_USERS || '')

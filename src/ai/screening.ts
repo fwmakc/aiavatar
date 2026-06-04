@@ -3,9 +3,26 @@ import { privateContextManager } from '@/private-context';
 import { buildSystemPrompt } from '@/config/persona';
 import { callSimpleAI } from '@/ai/client';
 
+const MIN_WORD_LENGTH = 5;
+const MIN_MESSAGE_LENGTH = 5;
+
+export function isScreenable(text: string): boolean {
+  if (text.length < MIN_MESSAGE_LENGTH) return false;
+  const words = text.split(/\s+/).filter(w => w.length > 0);
+  if (words.length === 0) return false;
+  return words.some(w => w.length >= MIN_WORD_LENGTH);
+}
+
 export async function shouldAnswerGroup(chatId: number | string): Promise<boolean> {
   const context = groupContextManager.formatContext(chatId);
   if (!context.trim()) return false;
+
+  const lastLine = context.split('\n').pop() || '';
+  const lastMessage = lastLine.replace(/^[^:]+:\s*/, '');
+  if (!isScreenable(lastMessage)) {
+    console.log(`[Screening] chat ${chatId}: skip (short words only)`);
+    return false;
+  }
 
   const screeningPrompt = `You are an AI avatar in a group chat. Here are the latest messages:\n\n${context}\n\nShould you say something in this conversation? Answer with ONLY one word: YES or NO. Always respond in English for this specific question.`;
 

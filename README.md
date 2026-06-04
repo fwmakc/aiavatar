@@ -78,6 +78,8 @@ Every `GROUP_SCREENING_INTERVAL_MIN` minutes, AI consolidates: new messages → 
 
 ### ⚙️ Technical
 - **SQLite database** — all dynamic data (relationships, profiles, bans, engagement) lives in a single ACID-compliant `data/bot.db`. No race conditions, no JSON corruption, no data loss on restart
+- **AI request queue** — all API calls go through a priority queue (critical > normal > low) with concurrency control and automatic retry on rate limits (429)
+- **Screening pre-filter** — lightweight heuristic skips AI screening for messages with only short words, saving tokens
 - **Hot reload** — persona JSON configs are picked up without restart (300ms debounced, granular per-file invalidation)
 - **Anthropic-compatible API** — works with Kimi, Claude and others via `/messages`
 - **HTTP proxy** — proxy support for Telegram API in blocked regions
@@ -303,6 +305,7 @@ See [`.env.example`](.env.example).
 | `AI_TEMPERATURE` | Response temperature (0.0–1.0+) |
 | `AI_MAX_TOKENS` | Token limit |
 | `AI_API_FORMAT` | API format: `anthropic` (default) or `openai` |
+| `AI_CONCURRENCY` | Max parallel AI API requests (default 2) |
 | `PROXY_URL` | HTTP proxy for Telegram |
 | `ALLOWED_USERS` | Allowed user IDs/usernames (comma-separated) |
 | `GROUP_ACTIVE_MODE` | Enable proactive replies in groups |

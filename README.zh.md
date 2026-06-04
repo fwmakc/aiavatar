@@ -74,6 +74,8 @@
 
 ### ⚙️ 技术特性
 - **SQLite 数据库** — 所有动态数据（关系、档案、封禁、参与度）存储在单个符合 ACID 的 `data/bot.db` 中。无竞态条件、无 JSON 损坏、重启不丢数据
+- **AI 请求队列** — 所有 API 调用通过优先级队列（critical > normal > low），支持并发控制和速率限制（429）自动重试
+- **筛选预过滤** — 轻量级启发式规则跳过仅含短词的消息的 AI 筛选，节省令牌
 - **热重载** — 人格 JSON 配置无需重启即可生效（300 毫秒防抖，仅使更改的文件缓存失效）
 - **Anthropic 兼容 API** — 通过 `/messages` 支持 Kimi、Claude 等
 - **HTTP 代理** — 支持在受限地区通过代理访问 Telegram API
@@ -299,6 +301,7 @@ data/
 | `AI_TEMPERATURE` | 回复温度（0.0–1.0+） |
 | `AI_MAX_TOKENS` | 令牌上限 |
 | `AI_API_FORMAT` | API 格式：`anthropic`（默认）或 `openai` |
+| `AI_CONCURRENCY` | 最大并行 AI API 请求数（默认 2） |
 | `PROXY_URL` | Telegram 的 HTTP 代理 |
 | `ALLOWED_USERS` | 允许的用户 ID/用户名（逗号分隔） |
 | `GROUP_ACTIVE_MODE` | 启用群组中的主动回复 |

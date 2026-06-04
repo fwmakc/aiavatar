@@ -1,5 +1,7 @@
 import { config } from '@/config/env';
 import { buildSystemPrompt } from '@/config/persona';
+import { enqueueAI } from '@/ai/queue';
+import type { Priority } from '@/ai/queue';
 
 export interface AIMessage {
   role: 'user' | 'assistant';
@@ -10,7 +12,8 @@ export async function askAI(
   userText: string,
   customSystemPrompt: string | null = null,
   tone: string | null = null,
-  history: AIMessage[] = []
+  history: AIMessage[] = [],
+  priority: Priority = 'critical'
 ): Promise<string> {
   let system = customSystemPrompt ?? buildSystemPrompt();
   if (tone) {
@@ -22,10 +25,10 @@ export async function askAI(
     { role: 'user', content: userText },
   ];
 
-  return callAI(messages, system);
+  return enqueueAI(messages, system, priority);
 }
 
-async function callAI(
+export async function callAI(
   messages: AIMessage[],
   system: string,
   maxTokens?: number
@@ -106,7 +109,8 @@ async function callOpenAI(
 export async function callSimpleAI(
   prompt: string,
   system?: string,
-  maxTokens?: number
+  maxTokens?: number,
+  priority: Priority = 'normal'
 ): Promise<string> {
-  return callAI([{ role: 'user', content: prompt }], system ?? '', maxTokens);
+  return enqueueAI([{ role: 'user', content: prompt }], system ?? '', priority, maxTokens);
 }

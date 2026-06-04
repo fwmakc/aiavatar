@@ -40,6 +40,7 @@ export interface AppConfig {
   aiApiFormat: 'anthropic' | 'openai';
   aiTemperature: number;
   aiMaxTokens: number;
+  aiConcurrency: number;
   botUsername: string;
   proxyUrl?: string;
   allowedUsers: string[];

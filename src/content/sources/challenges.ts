@@ -31,7 +31,7 @@ Topic: ${topic}`;
 
   // Try up to 2 times to avoid duplicates
   for (let attempt = 0; attempt < 2; attempt++) {
-    const text = await askAI(prompt, undefined, 'friendly');
+    const text = await askAI(prompt, undefined, 'friendly', [], 'low');
     const trimmed = text.trim();
     if (!wasContentPosted(chatIdNum, 'challenge', trimmed)) {
       return {

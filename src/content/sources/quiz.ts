@@ -21,7 +21,7 @@ CORRECT: <A/B/C/D>
 
 Always respond in English for the question itself. The intro line must be in the language from your system prompt.`;
 
-  const text = await askAI(prompt, undefined, 'friendly');
+  const text = await askAI(prompt, undefined, 'friendly', [], 'low');
 
   const introMatch = text.match(/INTRO:\s*(.+)/);
   const questionMatch = text.match(/(?:ВОПРОС|QUESTION):\s*(.+)/);
