@@ -92,4 +92,4 @@ https://api.telegram.org/botВАШ_ТОКЕН/getUpdates
 
 ---
 
-**Далее:** [Полезные советы →](11-tips.md)
+**Далее:** [Веб-поиск для фактчекинга →](11-web-search.md)
