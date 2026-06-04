@@ -181,6 +181,28 @@
 }
 ```
 
+### Добавить прогноз погоды
+
+Scheduled-фиды постятся в указанное время, минуя обычную очередь контента:
+
+```json
+{
+  "url": "https://api.open-meteo.com/v1/forecast?latitude=55.75&longitude=37.62&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=Europe/Moscow&forecast_days=1",
+  "type": "json",
+  "path": "daily",
+  "comment": true,
+  "commentPrompt": "You are sharing today's weather forecast. Be brief, add a practical tip (umbrella, dress warm, etc). Data: {text}",
+  "scheduled": ["07:30"],
+  "weight": 3
+}
+```
+
+- **`scheduled`** — массив времени в формате `"HH:MM"` (локальное время сервера). Фид постится в эти часы, даже если в чате идёт активная беседа
+- **`commentPrompt`** — кастомный промпт для AI. `{text}` заменяется на данные из API. Полезно, когда API возвращает структурированный JSON, а не готовый текст
+- **`path`** — путь к данным в JSON-ответе. Если данные — массив или объект, AI получит их целиком и сам сформулирует текст
+
+Если несколько scheduled-фидов назначены на одно время — постятся все.
+
 ### Изменить расписание
 
 ```json

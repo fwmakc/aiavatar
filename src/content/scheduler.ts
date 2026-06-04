@@ -1,6 +1,7 @@
 import { bot } from '@/telegram/bot';
 import { config } from '@/config/env';
 import { generateContent } from '@/content/engine';
+import { getScheduledFeedContent } from '@/content/sources/feeds';
 import { isActiveTime } from '@/schedule/checker';
 import { getChatPersonaConfig } from '@/config/persona';
 import {
@@ -127,11 +128,30 @@ async function checkAllChats(): Promise<void> {
   const chatIds = getAllChatIds();
   if (chatIds.length === 0) return;
 
+  const now = new Date();
+
   for (const chatId of chatIds) {
     if (!isActiveTime(chatId)) {
       console.log(`[ContentEngine] chat ${chatId}: outside active hours, skipping`);
       continue;
     }
+
+    try {
+      const scheduledItems = await getScheduledFeedContent(chatId, now);
+      if (scheduledItems.length > 0) {
+        for (const item of scheduledItems) {
+          await postContent(chatId, item);
+          recordContentPost(chatId, item.type);
+          recordPostedContent(chatId, item.type, item.text, item.link);
+        }
+        recordBotActivity(chatId);
+        console.log(`[ContentEngine] chat ${chatId}: posted ${scheduledItems.length} scheduled feed(s)`);
+        continue;
+      }
+    } catch (e) {
+      console.error(`[ContentEngine] Scheduled feed failed for chat ${chatId}:`, e);
+    }
+
     if (!shouldPostToChat(chatId)) continue;
 
     try {

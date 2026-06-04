@@ -243,7 +243,9 @@ data/
   "type": "rss",
   "weight": 5,
   "comment": true,
-  "translate": true
+  "translate": true,
+  "scheduled": ["07:30", "18:00"],
+  "commentPrompt": "Briefly share this info. Data: {text}"
 }
 ```
 
@@ -251,10 +253,12 @@ data/
 |---|---|
 | `url` | 源URL |
 | `type` | `rss` 或 `json` |
-| `path` | （仅json）点号路径提取文本，如 `"data.joke"` |
+| `path` | （仅json）点号路径提取文本，如 `"data.joke"`。如果值是对象/数组，将序列化后交给AI处理 |
 | `weight` | 选择权重 1–10（默认5）。越高越容易被选中 |
 | `comment` | `true` = AI以机器人风格添加评论 |
 | `translate` | `true` = 当内容语言与机器人 `language` 不同时进行翻译 |
+| `scheduled` | `"HH:MM"` 时间数组（服务器本地时间）。在指定时间发布，绕过 idle/interval 检查 |
+| `commentPrompt` | 自定义AI评论提示词。`{text}` 替换为获取的内容。适用于结构化API（天气、汇率等） |
 
 如果 `comment` 和 `translate` 都未设置（或为 `false`），内容将原样发布。
 

@@ -170,3 +170,22 @@ export function recordPostedContent(chatId: number, type: ContentType, text: str
   }
   saveState(state);
 }
+
+// === Scheduled feed tracking ===
+
+const SCHEDULED_TTL = 60 * 60 * 1000;
+const scheduledPosts = new Map<string, number>();
+
+function scheduledKey(chatId: number, feedUrl: string, scheduledTime: string): string {
+  return `${chatId}:${feedUrl}:${scheduledTime}`;
+}
+
+export function wasScheduledPosted(chatId: number, feedUrl: string, scheduledTime: string): boolean {
+  const ts = scheduledPosts.get(scheduledKey(chatId, feedUrl, scheduledTime));
+  if (!ts) return false;
+  return Date.now() - ts < SCHEDULED_TTL;
+}
+
+export function recordScheduledPost(chatId: number, feedUrl: string, scheduledTime: string): void {
+  scheduledPosts.set(scheduledKey(chatId, feedUrl, scheduledTime), Date.now());
+}

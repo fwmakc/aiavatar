@@ -247,7 +247,9 @@ Each entry in `contentSources.feeds` is an object:
   "type": "rss",
   "weight": 5,
   "comment": true,
-  "translate": true
+  "translate": true,
+  "scheduled": ["07:30", "18:00"],
+  "commentPrompt": "Share this info briefly. Data: {text}"
 }
 ```
 
@@ -255,10 +257,12 @@ Each entry in `contentSources.feeds` is an object:
 |---|---|
 | `url` | Feed URL |
 | `type` | `rss` or `json` |
-| `path` | (json only) dot-notation path to extract text, e.g. `"data.joke"` |
+| `path` | (json only) dot-notation path to extract text, e.g. `"data.joke"`. If the value is an object/array, it's serialized for AI |
 | `weight` | Selection weight 1–10 (default 5). Higher = more likely to be picked |
 | `comment` | `true` = AI adds a casual commentary in bot's style |
 | `translate` | `true` = translate if content language differs from bot's `language` |
+| `scheduled` | Array of `"HH:MM"` times (server local time). Feed is posted at these times, bypassing idle/interval checks |
+| `commentPrompt` | Custom AI prompt for commentary. `{text}` is replaced with fetched content. Useful for structured APIs (weather, currencies) |
 
 If both `comment` and `translate` are omitted (or `false`), content is posted as-is.
 

@@ -1,7 +1,7 @@
 import { askAI } from '@/ai/client';
 import type { ContentItem, FeedSource } from '@/content/types';
 import { getChatPersonaConfig, getChatFeeds } from '@/config/persona';
-import { wasContentPosted } from '@/content/store/state';
+import { wasContentPosted, wasScheduledPosted, recordScheduledPost } from '@/content/store/state';
 
 interface FetchResult {
   text: string;
@@ -85,6 +85,7 @@ function parseRss(xml: string): FetchResult[] {
 function parseJson(data: unknown, path?: string): FetchResult[] {
   if (!path) {
     if (typeof data === 'string') return [{ text: data }];
+    if (typeof data === 'object' && data !== null) return [{ text: JSON.stringify(data) }];
     return [];
   }
 
@@ -100,6 +101,10 @@ function parseJson(data: unknown, path?: string): FetchResult[] {
 
   if (typeof current === 'string') {
     return [{ text: current }];
+  }
+
+  if (typeof current === 'object' && current !== null) {
+    return [{ text: JSON.stringify(current) }];
   }
 
   return [];
@@ -140,7 +145,7 @@ export async function getFeedContent(chatId?: number): Promise<ContentItem | nul
     return { type: 'feed', text: text.trim(), tags: ['ai-generated'] };
   }
 
-  const shuffled = [...feeds].sort(() => Math.random() - 0.5);
+  const shuffled = [...feeds].filter(f => !f.scheduled).sort(() => Math.random() - 0.5);
   for (const source of shuffled) {
     const items = await fetchFromSource(source);
     if (items.length === 0) continue;
@@ -162,7 +167,9 @@ export async function getFeedContent(chatId?: number): Promise<ContentItem | nul
     }
 
     if (source.comment) {
-      const commentPrompt = `Write a short note (1-2 sentences) from the perspective of someone casually sharing info in a group chat. Don't use phrases like "Here's the news" or "It is reported". Just the fact + a light opinion.
+      const commentPrompt = source.commentPrompt
+        ? source.commentPrompt.replace('{text}', text.slice(0, 500))
+        : `Write a short note (1-2 sentences) from the perspective of someone casually sharing info in a group chat. Don't use phrases like "Here's the news" or "It is reported". Just the fact + a light opinion.
 
 Start with a short casual intro line. Examples: "Check this out:", "Look what I found:", "Sharing this with you:", "Stumbled upon this:", "Take a look:"
 
@@ -184,4 +191,63 @@ Title: ${text.slice(0, 200)}`;
   if (!fallbackPrompt) return null;
   const text = await askAI(fallbackPrompt, undefined, 'friendly', [], 'low');
   return { type: 'feed', text: text.trim(), tags: ['ai-generated'] };
+}
+
+function parseTimeToMinutes(t: string): number {
+  const parts = t.split(':');
+  return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+}
+
+export async function getScheduledFeedContent(chatId: number, now: Date): Promise<ContentItem[]> {
+  const feeds = getChatFeeds(chatId);
+  const scheduledFeeds = feeds.filter(f => f.scheduled && f.scheduled.length > 0);
+  if (scheduledFeeds.length === 0) return [];
+
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const results: ContentItem[] = [];
+
+  for (const source of scheduledFeeds) {
+    for (const scheduledTime of source.scheduled!) {
+      const scheduledMinutes = parseTimeToMinutes(scheduledTime);
+      if (currentMinutes < scheduledMinutes || currentMinutes >= scheduledMinutes + 30) continue;
+
+      if (wasScheduledPosted(chatId, source.url, scheduledTime)) {
+        console.log(`[Feeds] Scheduled ${source.url} at ${scheduledTime} already posted for chat ${chatId}`);
+        continue;
+      }
+
+      const items = await fetchFromSource(source);
+      if (items.length === 0) continue;
+
+      const item = items[Math.floor(Math.random() * items.length)];
+      let text = item.text;
+
+      if (source.translate) {
+        text = await translateIfNeeded(text, chatId);
+      }
+
+      if (source.comment) {
+        const commentPrompt = source.commentPrompt
+          ? source.commentPrompt.replace('{text}', text.slice(0, 500))
+          : `Write a short note (1-2 sentences) from the perspective of someone casually sharing info in a group chat. Don't use phrases like "Here's the news" or "It is reported". Just the fact + a light opinion.
+
+Start with a short casual intro line. Examples: "Check this out:", "Look what I found:", "Sharing this with you:", "Stumbled upon this:", "Take a look:"
+
+Title: ${text.slice(0, 200)}`;
+        const commentary = await askAI(commentPrompt, undefined, 'friendly', [], 'low');
+        text = commentary.trim() || text;
+      }
+
+      results.push({
+        type: 'feed',
+        text,
+        link: item.link,
+        tags: ['feed', source.type, 'scheduled'],
+      });
+
+      recordScheduledPost(chatId, source.url, scheduledTime);
+    }
+  }
+
+  return results;
 }

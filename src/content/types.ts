@@ -9,7 +9,9 @@ export interface FeedSource {
   path?: string;
   weight?: number;
   comment?: boolean;
+  commentPrompt?: string;
   translate?: boolean;
+  scheduled?: string[];
 }
 
 export interface ContentItem {

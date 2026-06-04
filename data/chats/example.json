@@ -46,6 +46,15 @@
         "type": "rss",
         "comment": true,
         "weight": 4
+      },
+      {
+        "url": "https://api.open-meteo.com/v1/forecast?latitude=55.75&longitude=37.62&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=Europe/Moscow&forecast_days=1",
+        "type": "json",
+        "path": "daily",
+        "comment": true,
+        "commentPrompt": "You are sharing today's weather forecast. Be brief, add a practical tip (umbrella, dress warm, etc). Data: {text}",
+        "scheduled": ["07:30"],
+        "weight": 3
       }
     ],
     "fallbackPrompt": "Расскажи короткий анекдот или забавную историю из жизни семьи. Максимум 3 предложения. От первого лица — как будто ты сам её вспомнил и хочешь поделиться.",
