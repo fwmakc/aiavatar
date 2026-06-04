@@ -28,23 +28,17 @@
     }
   },
   "contentSources": {
-    "news": [
-      "https://habr.com/ru/rss/news/",
-      "https://www.opennet.ru/opennews/opennews_all_utf.rss",
-      "https://www.tadviser.ru/index.php/rss",
-      "https://www.cnews.ru/inc/rss/news.xml",
-      "https://securelist.ru/feed/",
-      "https://techcrunch.com/feed/",
-      "https://www.theverge.com/rss/index.xml",
-      "https://arstechnica.com/feed/",
-      "https://news.ycombinator.com/rss",
-      "https://www.zdnet.com/news/rss.xml"
+    "feeds": [
+      { "url": "https://bash.im/rss/", "type": "rss", "weight": 5 },
+      { "url": "https://v2.jokeapi.dev/joke/Programming?type=single&blacklistFlags=nsfw,racist,sexist,explicit", "type": "json", "path": "joke", "weight": 5 },
+      { "url": "https://habr.com/ru/rss/news/", "type": "rss", "comment": true, "weight": 7 },
+      { "url": "https://www.opennet.ru/opennews/opennews_all_utf.rss", "type": "rss", "comment": true, "weight": 6 },
+      { "url": "https://securelist.ru/feed/", "type": "rss", "comment": true, "weight": 5 },
+      { "url": "https://techcrunch.com/feed/", "type": "rss", "comment": true, "translate": true, "weight": 6 },
+      { "url": "https://arstechnica.com/feed/", "type": "rss", "comment": true, "translate": true, "weight": 5 },
+      { "url": "https://news.ycombinator.com/rss", "type": "rss", "comment": true, "translate": true, "weight": 4 }
     ],
-    "jokes": {
-      "bashRss": "https://bash.im/rss/",
-      "jokeApiUrl": "https://v2.jokeapi.dev/joke/Programming?type=single&blacklistFlags=nsfw,racist,sexist,explicit",
-      "fallbackPrompt": "Расскажи короткий анекдот или шутку. Максимум 3 предложения. От первого лица — как будто ты сам её вспомнил и хочешь поделиться с чатом."
-    },
+    "fallbackPrompt": "Расскажи короткий анекдот или шутку. Максимум 3 предложения. От первого лица — как будто ты сам её вспомнил и хочешь поделиться с чатом.",
     "quiz": {
       "topics": [
         "JavaScript / TypeScript — тонкости языка, замыкания, прототипы, асинхронность",
@@ -77,10 +71,9 @@
     }
   },
   "schedule": {
-    "quietHours": {
-      "start": "23:00",
-      "end": "08:00"
-    },
-    "quietDays": [0, 6]
+    "activeHours": { "start": "08:00", "end": "23:00" },
+    "activeDays": [1, 2, 3, 4, 5],
+    "idleThresholdMin": 60,
+    "minIntervalMin": 120
   }
 }

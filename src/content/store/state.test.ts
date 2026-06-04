@@ -41,14 +41,14 @@ describe('content store state', () => {
 
   describe('content tracking', () => {
     it('records content post', () => {
-      recordContentPost(1, 'news');
+      recordContentPost(1, 'feed');
       const types = getRecentContentTypes(1);
-      expect(types).toEqual(['news']);
+      expect(types).toEqual(['feed']);
     });
 
     it('keeps last 20 content types', () => {
       for (let i = 0; i < 25; i++) {
-        recordContentPost(1, 'news');
+        recordContentPost(1, 'feed');
       }
       const types = getRecentContentTypes(1, 25);
       expect(types).toHaveLength(20);
@@ -57,25 +57,25 @@ describe('content store state', () => {
 
   describe('deduplication', () => {
     it('returns false for new content', () => {
-      expect(wasContentPosted(1, 'news', 'First news')).toBe(false);
+      expect(wasContentPosted(1, 'feed', 'First post')).toBe(false);
     });
 
     it('returns true for duplicate content', () => {
-      recordPostedContent(1, 'news', 'Same news');
-      expect(wasContentPosted(1, 'news', 'Same news')).toBe(true);
+      recordPostedContent(1, 'feed', 'Same post');
+      expect(wasContentPosted(1, 'feed', 'Same post')).toBe(true);
     });
 
     it('distinguishes same text with different types', () => {
-      recordPostedContent(1, 'news', 'Docker tips');
-      expect(wasContentPosted(1, 'joke', 'Docker tips')).toBe(false);
+      recordPostedContent(1, 'feed', 'Docker tips');
+      expect(wasContentPosted(1, 'quiz', 'Docker tips')).toBe(false);
     });
 
     it('evicts old entries after 50 posts', () => {
       for (let i = 0; i < 55; i++) {
-        recordPostedContent(1, 'news', `News ${i}`);
+        recordPostedContent(1, 'feed', `Post ${i}`);
       }
-      expect(wasContentPosted(1, 'news', 'News 0')).toBe(false);
-      expect(wasContentPosted(1, 'news', 'News 54')).toBe(true);
+      expect(wasContentPosted(1, 'feed', 'Post 0')).toBe(false);
+      expect(wasContentPosted(1, 'feed', 'Post 54')).toBe(true);
     });
   });
 

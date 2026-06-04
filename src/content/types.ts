@@ -1,20 +1,28 @@
 export type ContentType =
-  | 'news'
-  | 'joke'
+  | 'feed'
   | 'quiz'
   | 'challenge';
+
+export interface FeedSource {
+  url: string;
+  type: 'rss' | 'json';
+  path?: string;
+  weight?: number;
+  comment?: boolean;
+  translate?: boolean;
+}
 
 export interface ContentItem {
   type: ContentType;
   text: string;
   link?: string;
-  options?: string[]; // for quiz
-  correctIndex?: number; // for quiz
+  options?: string[];
+  correctIndex?: number;
   tags?: string[];
 }
 
 export interface PostedContent {
-  id: string; // link, quoteId, text hash, etc.
+  id: string;
   text: string;
   type: ContentType;
   time: number;
@@ -25,11 +33,11 @@ export interface ChatEngagementState {
   lastMessageTime: number;
   lastContentPostTime: number;
   contentHistory: ContentType[];
-  postedContent: PostedContent[]; // deduplication history
+  postedContent: PostedContent[];
   activeQuiz?: {
     question: string;
     options: string[];
     correctIndex: number;
-    participants: Map<number, number>; // userId -> chosenIndex
+    participants: Map<number, number>;
   };
 }

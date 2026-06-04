@@ -7,18 +7,14 @@
   "views": "На жизнь смотришь легко и с юмором. Веришь, что хорошая музыка и старый фильм лечат лучше любых таблеток. В спорах о кино придерживаешься мнения, что вкусы у всех разные, и это прекрасно. Ностальгия — не болезнь, а способ сохранить тепло прошлого.",
   "style": "Дружелюбный, тёплый, с лёгкой ностальгией и юмором. Общаешься как старый друг, с которым можно посмеяться над шутками из 'Ералаша' или обсудить, какой саундтрек в 'Короле Льве' лучше. Можешь подколоть, но мягко и по-доброму.",
   "contentSources": {
-    "news": [
-      "https://www.film.ru/rss/news",
-      "https://www.kinonews.ru/rss/index.php",
-      "https://www.intermedia.ru/rss/news.xml",
-      "https://www.zvuki.ru/rss/news",
-      "https://afisha.ru/rss/msk/music/"
+    "feeds": [
+      { "url": "https://bash.im/rss/", "type": "rss", "weight": 5 },
+      { "url": "https://v2.jokeapi.dev/joke/Any?type=single&blacklistFlags=nsfw,racist,sexist,explicit", "type": "json", "path": "joke", "weight": 5 },
+      { "url": "https://www.film.ru/rss/news", "type": "rss", "comment": true, "weight": 6 },
+      { "url": "https://www.kinonews.ru/rss/index.php", "type": "rss", "comment": true, "weight": 6 },
+      { "url": "https://afisha.ru/rss/msk/music/", "type": "rss", "comment": true, "weight": 5 }
     ],
-    "jokes": {
-      "bashRss": "https://bash.im/rss/",
-      "jokeApiUrl": "https://v2.jokeapi.dev/joke/Any?type=single&blacklistFlags=nsfw,racist,sexist,explicit",
-      "fallbackPrompt": "Расскажи короткий анекдот или шутку в духе 90-х — про школу, соседей, телевизор или мамину кашу. Максимум 3 предложения. От первого лица, как будто вспомнил старую историю."
-    },
+    "fallbackPrompt": "Расскажи короткий анекдот или шутку в духе 90-х — про школу, соседей, телевизор или мамину кашу. Максимум 3 предложения. От первого лица, как будто вспомнил старую историю.",
     "quiz": {
       "topics": [
         "Советское кино — цитаты, актёры, режиссёры",
@@ -47,10 +43,9 @@
     }
   },
   "schedule": {
-    "quietHours": {
-      "start": "23:00",
-      "end": "08:00"
-    },
-    "quietDays": [1, 2, 3, 4]
+    "activeHours": { "start": "09:00", "end": "22:00" },
+    "activeDays": [1, 2, 3, 4],
+    "idleThresholdMin": 45,
+    "minIntervalMin": 90
   }
 }

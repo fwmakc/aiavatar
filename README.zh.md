@@ -23,12 +23,11 @@
 
 ### 📰 内容引擎
 自适应调度器仅在聊天空闲时发布内容：
-- **新闻** — 可按聊天配置的 RSS 源
-- **笑话** — Bash.im + JokeAPI + AI 后备生成
-- **测验** — 按给定主题由 AI 生成问题
+- **内容源** — 统一的内容来源：RSS订阅、JSON API或任何URL。每个源可配置翻译、AI评论或原样发布
+- **测验** — 按给定主题由AI生成问题
 - **健康提醒** — 轻度健康挑战
 - **去重** — 同一内容不会发布两次
-- **安静时段** — 夜间和周末不打扰
+- **活跃时段** — 可配置的发布窗口和日期
 
 ### 🛡️ 审核与保护
 - **主题守护** — 私聊中拦截离题请求
@@ -50,25 +49,36 @@
 - **TypeScript + Vite** — 构建为单个 SSR 包
 - **双 AI API** — 支持 Anthropic `/messages` 和 OpenAI `/chat/completions`
 
-## 快速开始
+## 系统要求
 
+- Node.js 18+
+
+## 安装
+
+1. 克隆仓库：
+   ```bash
+   git clone https://github.com/fwmakc/aiavatar.git
+   cd aiavatar
+   ```
+
+2. 安装依赖：
+   ```bash
+   npm install
+   ```
+
+3. 复制并填写 `.env`：
+   ```bash
+   cp .env.example .env
+   ```
+
+4. 构建并运行：
+   ```bash
+   npm run build
+   npm start
+   ```
+
+开发模式：
 ```bash
-# 1. 克隆
-npm install
-
-# 2. 配置环境
-cp .env.example .env
-# 编辑 .env — 添加你的令牌
-
-# 3. 填写配置
-cp data/users/example.json data/users/123456789.json
-cp data/personal_chats/example.json data/personal_chats/123456789.json
-
-# 4. 构建并运行
-npm run build
-npm start
-
-# 或用于开发
 npm run dev
 ```
 
@@ -109,14 +119,14 @@ data/
 | `interests` | 文化代码、爱好 |
 | `views` | 世界观、争论中的立场 |
 | `style` | 交流风格（友好、讽刺、正式……） |
-| `contentSources.news` | 新闻 RSS 源列表 |
-| `contentSources.jokes.bashRss` | Bash.im RSS |
-| `contentSources.jokes.jokeApiUrl` | JokeAPI URL |
-| `contentSources.jokes.fallbackPrompt` | AI 笑话提示词 |
+| `contentSources.feeds` | 内容源数组（见下文） |
+| `contentSources.fallbackPrompt` | 所有源失败时的AI提示词 |
 | `contentSources.quiz.topics` | 测验主题 |
 | `contentSources.challenges.topics` | 健康提醒主题 |
-| `schedule.quietHours` | 安静时段（开始/结束 HH:MM） |
-| `schedule.quietDays` | 安静日期（0 = 周日） |
+| `schedule.activeHours` | 活跃发布时段（开始/结束，HH:MM） |
+| `schedule.activeDays` | 活跃日期（0或7 = 周日，1 = 周一，...，6 = 周六） |
+| `schedule.idleThresholdMin` | 发布前需要沉默的分钟数（默认60） |
+| `schedule.minIntervalMin` | 两次发布之间的最小分钟数（默认120） |
 | `personaStages` | 关系动态的情感阶段（见下文） |
 
 #### `personaStages`
@@ -190,6 +200,45 @@ data/
 
 **仅在私聊中生效**。优先级：`chats` > `personal_chats` > `default`。
 
+## 内容源
+
+`contentSources.feeds` 中的每个条目是一个对象：
+
+```json
+{
+  "url": "https://example.com/rss",
+  "type": "rss",
+  "weight": 5,
+  "comment": true,
+  "translate": true
+}
+```
+
+| 字段 | 描述 |
+|---|---|
+| `url` | 源URL |
+| `type` | `rss` 或 `json` |
+| `path` | （仅json）点号路径提取文本，如 `"data.joke"` |
+| `weight` | 选择权重 1–10（默认5）。越高越容易被选中 |
+| `comment` | `true` = AI以机器人风格添加评论 |
+| `translate` | `true` = 当内容语言与机器人 `language` 不同时进行翻译 |
+
+如果 `comment` 和 `translate` 都未设置（或为 `false`），内容将原样发布。
+
+## 选择内容源
+
+将以下提示词复制到AI聊天中，替换参数以获取适合你角色的理想内容源：
+
+> 为具有以下特征的Telegram机器人推荐RSS订阅和JSON API：
+> - 语言：`<language>`
+> - 专业领域：`<specialization>`
+> - 兴趣：`<interests>`
+> - 交流风格：`<style>`
+> - 受众关心的话题：`<topics>`
+>
+> 对每个源提供：URL、类型（rss或json）、是否需要翻译、AI评论是否有价值。
+> 将回答格式化为可直接粘贴到 `contentSources.feeds` 的JSON数组。
+
 ## 数据库
 
 所有**动态**数据都存储在 `data/bot.db` 中（SQLite，WAL 模式）。机器人永远不会写入 JSON 文件。
@@ -234,16 +283,6 @@ data/
 
 - `/profile` — 显示心理画像
 - `/reconcile` — 和解模式（分数 < 0 时自动启用）
-
-## CI 与发布
-
-- **CI** — 每个 PR 检查：`npm ci` → `npm run build`
-- **发布** — 在 git 标签 `v*` 时发布到 npm。需要 GitHub Secrets 中的 `NPM_TOKEN`。
-
-```bash
-npm version patch   # 或 minor / major
-git push --follow-tags
-```
 
 ## 许可证
 

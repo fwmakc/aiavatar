@@ -1,7 +1,8 @@
 import { bot } from '@/telegram/bot';
 import { config } from '@/config/env';
 import { generateContent } from '@/content/engine';
-import { isQuietTime } from '@/schedule/checker';
+import { isActiveTime } from '@/schedule/checker';
+import { getChatPersonaConfig } from '@/config/persona';
 import {
   getChatState,
   getAllChatIds,
@@ -12,10 +13,9 @@ import {
 } from '@/content/store/state';
 import type { ContentItem } from '@/content/types';
 
-const IDLE_THRESHOLD_MS = 60 * 60 * 1000; // 1 hour of silence before content post before posting
-const MIN_INTERVAL_BETWEEN_POSTS_MS = 2 * 60 * 60 * 1000; // min 2 hours between content posts per chat
+const DEFAULT_IDLE_THRESHOLD_MIN = 60;
+const DEFAULT_MIN_INTERVAL_MIN = 120;
 
-// Adaptive check intervals based on chat activity
 const CHECK_5_MIN = 5 * 60 * 1000;
 const CHECK_10_MIN = 10 * 60 * 1000;
 const CHECK_30_MIN = 30 * 60 * 1000;
@@ -31,7 +31,6 @@ export function startContentScheduler(): void {
 
   console.log('[ContentEngine] Started (adaptive)');
 
-  // Run once shortly after start, then schedule adaptively
   setTimeout(() => {
     runCheckCycle();
   }, 60 * 1000);
@@ -54,9 +53,8 @@ function computeNextCheckDelay(): number {
     }
   }
 
-  // Most active chat determines check frequency
   if (shortestIdle < 10 * 60 * 1000) {
-    return CHECK_5_MIN; // Active chat → check often
+    return CHECK_5_MIN;
   }
   if (shortestIdle < 30 * 60 * 1000) {
     return CHECK_10_MIN;
@@ -64,7 +62,7 @@ function computeNextCheckDelay(): number {
   if (shortestIdle < 60 * 60 * 1000) {
     return CHECK_30_MIN;
   }
-  return CHECK_60_MIN; // All chats idle → check rarely
+  return CHECK_60_MIN;
 }
 
 async function runCheckCycle(): Promise<void> {
@@ -84,26 +82,28 @@ async function runCheckCycle(): Promise<void> {
 }
 
 function shouldPostToChat(chatId: number): boolean {
+  const cfg = getChatPersonaConfig(chatId);
+  const idleThreshold = (cfg.schedule?.idleThresholdMin ?? DEFAULT_IDLE_THRESHOLD_MIN) * 60 * 1000;
+  const minInterval = (cfg.schedule?.minIntervalMin ?? DEFAULT_MIN_INTERVAL_MIN) * 60 * 1000;
+
   const state = getChatState(chatId);
   const now = Date.now();
 
-  // Don't post if we posted recently
-  if (state.lastContentPostTime > 0 && now - state.lastContentPostTime < MIN_INTERVAL_BETWEEN_POSTS_MS) {
-    const minsLeft = Math.ceil((MIN_INTERVAL_BETWEEN_POSTS_MS - (now - state.lastContentPostTime)) / 60000);
-    console.log(`[ContentEngine] chat ${chatId}: недавно постил, подожди ${minsLeft} мин`);
+  if (state.lastContentPostTime > 0 && now - state.lastContentPostTime < minInterval) {
+    const minsLeft = Math.ceil((minInterval - (now - state.lastContentPostTime)) / 60000);
+    console.log(`[ContentEngine] chat ${chatId}: recently posted, wait ${minsLeft} min`);
     return false;
   }
 
-  // Post if chat is idle (no messages for 1 hour)
   const idleMin = Math.round((now - state.lastMessageTime) / 60000);
-  const isIdle = now - state.lastMessageTime >= IDLE_THRESHOLD_MS;
+  const isIdle = now - state.lastMessageTime >= idleThreshold;
 
   if (isIdle) {
-    console.log(`[ContentEngine] chat ${chatId}: тишина ${idleMin} мин, можно постить`);
+    console.log(`[ContentEngine] chat ${chatId}: idle ${idleMin} min, can post`);
     return true;
   }
 
-  console.log(`[ContentEngine] chat ${chatId}: активность ${idleMin} мин назад, молчу`);
+  console.log(`[ContentEngine] chat ${chatId}: activity ${idleMin} min ago, staying quiet`);
   return false;
 }
 
@@ -112,8 +112,8 @@ async function checkAllChats(): Promise<void> {
   if (chatIds.length === 0) return;
 
   for (const chatId of chatIds) {
-    if (isQuietTime(chatId)) {
-      console.log(`[ContentEngine] chat ${chatId}: тихие часы, пропускаю`);
+    if (!isActiveTime(chatId)) {
+      console.log(`[ContentEngine] chat ${chatId}: outside active hours, skipping`);
       continue;
     }
     if (!shouldPostToChat(chatId)) continue;
@@ -126,7 +126,7 @@ async function checkAllChats(): Promise<void> {
       recordContentPost(chatId, item.type);
       recordPostedContent(chatId, item.type, item.text, item.link);
       recordBotActivity(chatId);
-      console.log(`[ContentEngine] chat ${chatId}: запостил ${item.type}`);
+      console.log(`[ContentEngine] chat ${chatId}: posted ${item.type}`);
     } catch (e) {
       console.error(`[ContentEngine] Failed to post to chat ${chatId}:`, e);
     }
@@ -134,17 +134,12 @@ async function checkAllChats(): Promise<void> {
 }
 
 const INTROS: Record<string, string[]> = {
-  news: [
-    'Смотрите, вот нашёл новость:',
-    'Кое-что интересное из ленты:',
-    'Вот это прилетело в мою ленту:',
-    'Наткнулся на это, зацените:',
-  ],
-  joke: [
-    'Хочу поделиться шуткой:',
-    'Вспомнил анекдот:',
-    'Расскажу по секрету:',
-    'Вот это меня рассмешило:',
+  feed: [
+    'Вот кое-что интересное:',
+    'Смотрите, нашёл:',
+    'Поделюсь с вами:',
+    'Наткнулся на это:',
+    'Зацените:',
   ],
   quiz: [
     'Давайте поиграем?',
@@ -172,7 +167,6 @@ async function postContent(chatId: number, item: ContentItem): Promise<void> {
     messageText += `\n\n👉 ${item.link}`;
   }
 
-  // Quiz handling — native Telegram quiz poll
   if (item.type === 'quiz' && item.options && item.correctIndex !== undefined) {
     const question = item.text.replace(/^🧠\s*/, '').replace(/<[^>]+>/g, '');
     await bot.telegram.sendPoll(chatId, `${intro}\n\n${question}`, item.options, {
@@ -186,11 +180,9 @@ async function postContent(chatId: number, item: ContentItem): Promise<void> {
 
   await bot.telegram.sendMessage(chatId, messageText, {
     parse_mode: 'HTML',
-    disable_web_page_preview: item.type === 'joke',
   });
 }
 
-// Called from message handler to track activity
 export function onGroupMessage(chatId: number): void {
   registerChat(chatId);
 }

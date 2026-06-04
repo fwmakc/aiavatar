@@ -1,44 +1,35 @@
 import type { ContentItem, ContentType } from '@/content/types';
 
-import { getNewsContent } from '@/content/sources/news';
-import { getJokeContent } from '@/content/sources/jokes';
-
+import { getFeedContent } from '@/content/sources/feeds';
 import { getQuizContent } from '@/content/sources/quiz';
 import { getChallengeContent, getChallengeNeedsTargets } from '@/content/sources/challenges';
 import { getRecentContentTypes } from '@/content/store/state';
 
 const CONTENT_GENERATORS: Record<ContentType, (chatId: number) => Promise<ContentItem | null>> = {
-  news: (chatId) => getNewsContent(chatId),
-  joke: (chatId) => getJokeContent(chatId),
+  feed: (chatId) => getFeedContent(chatId),
   quiz: (chatId) => getQuizContent(chatId),
   challenge: (chatId) => getChallengeContent(chatId),
 };
 
-const DAYTIME_WEIGHTS: Record<string, ContentType[]> = {
-  morning: ['news', 'challenge'],
-  day: ['news', 'quiz', 'challenge'],
-  evening: ['joke', 'quiz', 'challenge'],
-  night: ['joke', 'challenge'],
+const TYPE_WEIGHTS: Record<ContentType, number> = {
+  feed: 6,
+  quiz: 2,
+  challenge: 2,
 };
-
-function getTimeOfDay(): 'morning' | 'day' | 'evening' | 'night' {
-  const hour = new Date().getHours();
-  if (hour >= 6 && hour < 12) return 'morning';
-  if (hour >= 12 && hour < 18) return 'day';
-  if (hour >= 18 && hour < 23) return 'evening';
-  return 'night';
-}
 
 function pickContentType(chatId: number): ContentType {
   const recent = getRecentContentTypes(chatId, 3);
-  const timeOfDay = getTimeOfDay();
-  const candidates = DAYTIME_WEIGHTS[timeOfDay];
+  const allTypes: ContentType[] = ['feed', 'quiz', 'challenge'];
+  const available = allTypes.filter(t => !recent.includes(t));
+  const pool = available.length > 0 ? available : allTypes;
 
-  // Filter out recent types to avoid repetition
-  const available = candidates.filter(t => !recent.includes(t));
-  const pool = available.length > 0 ? available : candidates;
-
-  return pool[Math.floor(Math.random() * pool.length)];
+  const totalWeight = pool.reduce((sum, t) => sum + TYPE_WEIGHTS[t], 0);
+  let roll = Math.random() * totalWeight;
+  for (const type of pool) {
+    roll -= TYPE_WEIGHTS[type];
+    if (roll <= 0) return type;
+  }
+  return pool[pool.length - 1];
 }
 
 export async function generateContent(chatId: number): Promise<ContentItem | null> {
@@ -48,15 +39,13 @@ export async function generateContent(chatId: number): Promise<ContentItem | nul
   try {
     const item = await generator(chatId);
     if (!item) {
-      // Fallback to joke if primary source failed
-      return getJokeContent();
+      return getFeedContent(chatId);
     }
     return item;
   } catch (e) {
     console.error(`Content generation failed for type ${type}:`, e);
-    // Fallback
     try {
-      return await getJokeContent();
+      return await getFeedContent(chatId);
     } catch {
       return null;
     }

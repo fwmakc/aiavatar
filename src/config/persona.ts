@@ -1,12 +1,15 @@
 import { readFileSync, existsSync, readdirSync, watch, mkdirSync } from 'fs';
 import { resolve } from 'path';
+import type { FeedSource } from '@/content/types';
 
 export interface ActivitySchedule {
-  quietHours?: {
-    start: string; // "HH:MM" 24h
+  activeHours?: {
+    start: string;
     end: string;
   };
-  quietDays?: number[]; // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  activeDays?: number[];
+  idleThresholdMin?: number;
+  minIntervalMin?: number;
 }
 
 export interface PersonaStage {
@@ -26,12 +29,8 @@ export interface BotPersona {
   language: string;
   personaStages?: Partial<Record<PersonaStageKey, PersonaStage>>;
   contentSources?: {
-    news?: string[];
-    jokes?: {
-      bashRss?: string;
-      jokeApiUrl?: string;
-      fallbackPrompt?: string;
-    };
+    feeds?: FeedSource[];
+    fallbackPrompt?: string;
     quiz?: {
       topics?: string[];
     };
@@ -61,12 +60,131 @@ function loadJson<T>(path: string): T | null {
   }
 }
 
+interface LegacyContentSources {
+  news?: string[];
+  jokes?: {
+    bashRss?: string;
+    jokeApiUrl?: string;
+    fallbackPrompt?: string;
+  };
+  feeds?: FeedSource[];
+  fallbackPrompt?: string;
+  quiz?: { topics?: string[] };
+  challenges?: { topics?: string[] };
+}
+
+interface LegacySchedule {
+  quietHours?: { start: string; end: string };
+  quietDays?: number[];
+  activeHours?: { start: string; end: string };
+  activeDays?: number[];
+  idleThresholdMin?: number;
+  minIntervalMin?: number;
+}
+
+interface LegacyPersona {
+  name?: string;
+  specialization?: string;
+  interests?: string;
+  views?: string;
+  style?: string;
+  language?: string;
+  personaStages?: Partial<Record<PersonaStageKey, PersonaStage>>;
+  contentSources?: LegacyContentSources;
+  schedule?: LegacySchedule;
+}
+
+function migrateContentSources(raw: LegacyContentSources): BotPersona['contentSources'] {
+  const result: NonNullable<BotPersona['contentSources']> = {};
+
+  if (raw.feeds && raw.feeds.length > 0) {
+    result.feeds = raw.feeds;
+  } else if (raw.news || raw.jokes) {
+    const feeds: FeedSource[] = [];
+
+    if (raw.news) {
+      for (const url of raw.news) {
+        feeds.push({ url, type: 'rss', comment: true, weight: 5 });
+      }
+    }
+
+    if (raw.jokes?.bashRss) {
+      feeds.push({ url: raw.jokes.bashRss, type: 'rss', weight: 5 });
+    }
+    if (raw.jokes?.jokeApiUrl) {
+      feeds.push({ url: raw.jokes.jokeApiUrl, type: 'json', path: 'joke', weight: 5 });
+    }
+
+    if (feeds.length > 0) {
+      console.warn('[Persona] Legacy contentSources.news/jokes detected — migrated to feeds. Please update your config.');
+      result.feeds = feeds;
+    }
+  }
+
+  if (raw.fallbackPrompt) {
+    result.fallbackPrompt = raw.fallbackPrompt;
+  } else if (raw.jokes?.fallbackPrompt) {
+    result.fallbackPrompt = raw.jokes.fallbackPrompt;
+  }
+
+  if (raw.quiz) result.quiz = raw.quiz;
+  if (raw.challenges) result.challenges = raw.challenges;
+
+  return result;
+}
+
+function migrateSchedule(raw: LegacySchedule): ActivitySchedule | undefined {
+  if (raw.activeHours || raw.activeDays) {
+    return {
+      activeHours: raw.activeHours,
+      activeDays: raw.activeDays,
+      idleThresholdMin: raw.idleThresholdMin,
+      minIntervalMin: raw.minIntervalMin,
+    };
+  }
+
+  if (raw.quietHours || raw.quietDays) {
+    console.warn('[Persona] Legacy schedule.quietHours/quietDays detected — migrated to activeHours/activeDays. Please update your config.');
+
+    const result: ActivitySchedule = {};
+
+    if (raw.quietHours) {
+      result.activeHours = {
+        start: raw.quietHours.end,
+        end: raw.quietHours.start,
+      };
+    }
+
+    if (raw.quietDays) {
+      const allDays = [0, 1, 2, 3, 4, 5, 6];
+      result.activeDays = allDays.filter(d => !raw.quietDays!.includes(d));
+    }
+
+    return result;
+  }
+
+  return undefined;
+}
+
 function loadDefault(): BotPersona {
   if (cachedDefault) return cachedDefault;
-  const cfg = loadJson<BotPersona>(DEFAULT_FILE);
-  if (!cfg) {
+  const raw = loadJson<LegacyPersona>(DEFAULT_FILE);
+  if (!raw) {
     throw new Error(`[Persona] Missing default config at ${DEFAULT_FILE}`);
   }
+
+  const cfg: BotPersona = {
+    name: raw.name || 'Bot',
+    specialization: raw.specialization || '',
+    interests: raw.interests || '',
+    views: raw.views || '',
+    style: raw.style || '',
+    language: raw.language || 'english',
+    personaStages: raw.personaStages,
+    contentSources: raw.contentSources ? migrateContentSources(raw.contentSources) : undefined,
+    schedule: raw.schedule ? migrateSchedule(raw.schedule) : undefined,
+  };
+
   cachedDefault = cfg;
   return cfg;
 }
@@ -75,8 +193,23 @@ function loadChat(chatId: string | number): BotPersona | null {
   const key = String(chatId);
   if (cachedChats.has(key)) return cachedChats.get(key)!;
   const fileName = key.startsWith('-') ? key.slice(1) : key;
-  const cfg = loadJson<BotPersona>(resolve(CHATS_DIR, `${fileName}.json`));
-  if (cfg) cachedChats.set(key, cfg);
+  const raw = loadJson<LegacyPersona>(resolve(CHATS_DIR, `${fileName}.json`));
+  if (!raw) return null;
+
+  const base = loadDefault();
+  const cfg: BotPersona = {
+    name: raw.name ?? base.name,
+    specialization: raw.specialization ?? base.specialization,
+    interests: raw.interests ?? base.interests,
+    views: raw.views ?? base.views,
+    style: raw.style ?? base.style,
+    language: raw.language ?? base.language,
+    personaStages: raw.personaStages,
+    contentSources: raw.contentSources ? migrateContentSources(raw.contentSources) : undefined,
+    schedule: raw.schedule ? migrateSchedule(raw.schedule) : undefined,
+  };
+
+  cachedChats.set(key, cfg);
   return cfg;
 }
 
@@ -94,11 +227,8 @@ export function getChatPersonaConfig(chatId?: string | number): BotPersona {
     views: override.views ?? base.views,
     style: override.style ?? base.style,
     contentSources: {
-      news: override.contentSources?.news ?? base.contentSources?.news,
-      jokes: {
-        ...base.contentSources?.jokes,
-        ...override.contentSources?.jokes,
-      },
+      feeds: override.contentSources?.feeds ?? base.contentSources?.feeds,
+      fallbackPrompt: override.contentSources?.fallbackPrompt ?? base.contentSources?.fallbackPrompt,
       quiz: {
         ...base.contentSources?.quiz,
         ...override.contentSources?.quiz,
@@ -150,9 +280,9 @@ export function buildSystemPrompt(chatId?: string | number, userId?: number): st
 Характер: Ты НЕ ассистент, НЕ помощник и НЕ служба поддержки. Ты общаешься как равный с равным. У тебя есть своё мнение и настроение. Ты не обязан ничего разжёвывать или помогать. Если не хочешь отвечать — не отвечай. Если не согласен — спорь. Ты здесь не для того, чтобы обслуживать запросы.`;
 }
 
-export function getChatNewsSources(chatId?: number): string[] {
+export function getChatFeeds(chatId?: number): FeedSource[] {
   const cfg = getChatPersonaConfig(chatId);
-  return cfg.contentSources?.news ?? [];
+  return cfg.contentSources?.feeds ?? [];
 }
 
 export function getPersonaStages(chatId?: string | number, userId?: number): Partial<Record<PersonaStageKey, PersonaStage>> | undefined {
@@ -177,7 +307,6 @@ function debounce(timer: NodeJS.Timeout | null, fn: () => void): NodeJS.Timeout 
 
 function invalidateDefault() {
   cachedDefault = null;
-  // Chat overrides merge with default, so they need re-merge too
   cachedChats.clear();
   console.log('[Persona] default.json changed — invalidated default + all chat caches');
 }
@@ -222,17 +351,14 @@ function watchDir(dir: string, onFileChange: (fileName: string) => void) {
 }
 
 export function startPersonaWatcher(): void {
-  // Watch default.json
   watchFile(DEFAULT_FILE, () => {
     defaultDebounce = debounce(defaultDebounce, invalidateDefault);
   });
 
-  // Watch chats/ directory
   watchDir(CHATS_DIR, (fileName) => {
     chatsDebounce = debounce(chatsDebounce, () => invalidateChat(fileName));
   });
 
-  // Watch personal_chats/ directory
   watchDir(PERSONAL_CHATS_DIR, (fileName) => {
     personalDebounce = debounce(personalDebounce, () => invalidatePersonal(fileName));
   });

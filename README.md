@@ -27,12 +27,11 @@ The bot's entire personality lives in JSON files, not code. Change name, style, 
 
 ### 📰 Content Engine
 An adaptive scheduler posts content only when the chat is idle:
-- **News** — RSS feeds, configurable per-chat
-- **Jokes** — Bash.im + JokeAPI + AI fallback
+- **Feeds** — unified content sources: RSS feeds, JSON APIs, or any URL. Each source can be configured to translate, add AI commentary, or post as-is
 - **Quizzes** — AI-generated questions on given topics
 - **Wellness reminders** — light challenges for health
 - **Deduplication** — never posts the same content twice
-- **Quiet hours** — no spam at night or on weekends
+- **Active hours** — configurable posting window and days
 
 ### 🛡️ Moderation & Protection
 - **Topic guard** — blocks off-topic requests in DMs
@@ -54,25 +53,36 @@ An adaptive scheduler posts content only when the chat is idle:
 - **TypeScript + Vite** — built into a single SSR bundle
 - **Dual AI API** — supports both Anthropic `/messages` and OpenAI `/chat/completions`
 
-## Quick Start
+## Requirements
 
+- Node.js 18+
+
+## Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/fwmakc/aiavatar.git
+   cd aiavatar
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Copy and fill in `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+
+4. Build and run:
+   ```bash
+   npm run build
+   npm start
+   ```
+
+For development:
 ```bash
-# 1. Clone
-npm install
-
-# 2. Configure environment
-cp .env.example .env
-# edit .env — add your tokens
-
-# 3. Fill configs
-cp data/users/example.json data/users/123456789.json
-cp data/personal_chats/example.json data/personal_chats/123456789.json
-
-# 4. Build and run
-npm run build
-npm start
-
-# Or for development
 npm run dev
 ```
 
@@ -113,14 +123,14 @@ data/
 | `interests` | Cultural code, hobbies |
 | `views` | Worldview, position in arguments |
 | `style` | Communication style (friendly, sarcastic, formal...) |
-| `contentSources.news` | List of RSS feeds for news |
-| `contentSources.jokes.bashRss` | Bash.im RSS |
-| `contentSources.jokes.jokeApiUrl` | JokeAPI URL |
-| `contentSources.jokes.fallbackPrompt` | Prompt for AI jokes |
+| `contentSources.feeds` | Array of feed sources (see below) |
+| `contentSources.fallbackPrompt` | AI prompt when all feeds fail |
 | `contentSources.quiz.topics` | Topics for quizzes |
 | `contentSources.challenges.topics` | Topics for wellness reminders |
-| `schedule.quietHours` | Quiet hours (start/end in HH:MM) |
-| `schedule.quietDays` | Quiet days (0 = Sunday) |
+| `schedule.activeHours` | Active posting window (start/end in HH:MM) |
+| `schedule.activeDays` | Active days (0 or 7 = Sunday, 1 = Monday, ..., 6 = Saturday) |
+| `schedule.idleThresholdMin` | Minutes of silence before posting (default 60) |
+| `schedule.minIntervalMin` | Minimum minutes between posts (default 120) |
 | `personaStages` | Emotional stages for relationship dynamics (see below) |
 
 #### `personaStages`
@@ -194,6 +204,45 @@ Overrides any fields from `default.json` for a specific chat. Telegram chat IDs 
 
 Applied **only in DMs**. Priority: `chats` > `personal_chats` > `default`.
 
+## Feed Sources
+
+Each entry in `contentSources.feeds` is an object:
+
+```json
+{
+  "url": "https://example.com/rss",
+  "type": "rss",
+  "weight": 5,
+  "comment": true,
+  "translate": true
+}
+```
+
+| Field | Description |
+|---|---|
+| `url` | Feed URL |
+| `type` | `rss` or `json` |
+| `path` | (json only) dot-notation path to extract text, e.g. `"data.joke"` |
+| `weight` | Selection weight 1–10 (default 5). Higher = more likely to be picked |
+| `comment` | `true` = AI adds a casual commentary in bot's style |
+| `translate` | `true` = translate if content language differs from bot's `language` |
+
+If both `comment` and `translate` are omitted (or `false`), content is posted as-is.
+
+## Choosing Content Sources
+
+Copy this prompt into an AI chat, replacing the parameters to get ideal feed sources for your persona:
+
+> Suggest RSS feeds and JSON APIs for a Telegram bot with these characteristics:
+> - Language: `<language>`
+> - Specialization: `<specialization>`
+> - Interests: `<interests>`
+> - Communication style: `<style>`
+> - Topics the audience cares about: `<topics>`
+>
+> For each source provide: URL, type (rss or json), whether it needs translation, and whether AI commentary would add value.
+> Format the response as a JSON array ready to paste into `contentSources.feeds`.
+
 ## Database
 
 All **dynamic** data is stored in `data/bot.db` (SQLite, WAL mode). The bot never writes to JSON files.
@@ -238,16 +287,6 @@ See [`.env.example`](.env.example).
 
 - `/profile` — show psychological profile
 - `/reconcile` — reconciliation mode (auto-enabled when score < 0)
-
-## CI & Releases
-
-- **CI** — checked on every PR: `npm ci` → `npm run build`
-- **Release** — publish to npm on git tag `v*`. Requires `NPM_TOKEN` in GitHub Secrets.
-
-```bash
-npm version patch   # or minor / major
-git push --follow-tags
-```
 
 ## License
 

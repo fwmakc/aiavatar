@@ -5,41 +5,46 @@ function parseTime(timeStr: string): number {
   return h * 60 + m;
 }
 
-/**
- * Checks if the bot should be quiet (not posting proactive content).
- * Direct replies/mentions/DMs are not affected.
- */
-export function isQuietTime(chatId?: number): boolean {
+function normalizeDay(day: number): number {
+  if (day === 7) return 0;
+  return day;
+}
+
+export function isActiveTime(chatId?: number): boolean {
   const cfg = getChatPersonaConfig(chatId);
   const schedule = cfg.schedule;
-  if (!schedule) return false;
+
+  if (!schedule?.activeHours && !schedule?.activeDays) return true;
 
   const now = new Date();
-  const currentDay = now.getDay(); // 0 = Sunday, 6 = Saturday
+  const currentDay = normalizeDay(now.getDay());
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-  // Check quiet days
-  if (schedule.quietDays && schedule.quietDays.includes(currentDay)) {
-    return true;
+  if (schedule.activeDays) {
+    const normalized = schedule.activeDays.map(normalizeDay);
+    if (!normalized.includes(currentDay)) {
+      return false;
+    }
   }
 
-  // Check quiet hours
-  if (schedule.quietHours) {
-    const start = parseTime(schedule.quietHours.start);
-    const end = parseTime(schedule.quietHours.end);
+  if (schedule.activeHours) {
+    const start = parseTime(schedule.activeHours.start);
+    const end = parseTime(schedule.activeHours.end);
 
     if (start <= end) {
-      // Same day range, e.g. 23:00 - 08:00 doesn't work here
-      if (currentMinutes >= start && currentMinutes <= end) {
-        return true;
+      if (currentMinutes < start || currentMinutes >= end) {
+        return false;
       }
     } else {
-      // Overnight range, e.g. 23:00 - 08:00
-      if (currentMinutes >= start || currentMinutes <= end) {
-        return true;
+      if (currentMinutes < start && currentMinutes >= end) {
+        return false;
       }
     }
   }
 
-  return false;
+  return true;
+}
+
+export function isQuietTime(chatId?: number): boolean {
+  return !isActiveTime(chatId);
 }
