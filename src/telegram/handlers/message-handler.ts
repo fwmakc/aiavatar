@@ -18,6 +18,7 @@ import { onGroupMessage } from '@/content/scheduler';
 import { pickReaction } from '@/reactions/engine';
 import { canReplyInGroup, recordGroupReply } from '@/group/rate-limiter';
 import { isQuietTime } from '@/schedule/checker';
+import { getMemoryContext } from '@/memory/context';
 
 function isAllowedUser(ctx: Context): boolean {
   const userId = String(ctx.from?.id ?? '');
@@ -326,7 +327,10 @@ export function setupMessageHandler(): void {
       const noInsultPrompt = '\n\nКРАСНАЯ ЛИНИЯ: никогда не оскорбляй собеседника, не унижай его, не используй шутки про маму/родных/внешность/национальность. Если тебя оскорбляют — можешь дать отпор резко, но не переходи на личности. Будь жёстким в словах, но не мерзким.';
       const peoplePrompt = userId ? getPeoplePromptAddon(userId) : '';
       const basePrompt = buildSystemPrompt(chatId, isPrivate ? (userId ?? undefined) : undefined);
-      const fullSystemPrompt = `${basePrompt}\n\n${relPrompt}${peoplePrompt}${slangPrompt}${noQuestionPrompt}${noInsultPrompt}`;
+      const memoryChatId = isPrivate ? (userId ?? 0) : -(Math.abs(chatId));
+      const memoryContext = getMemoryContext(memoryChatId);
+      const memoryBlock = memoryContext ? `\n\n${memoryContext}` : '';
+      const fullSystemPrompt = `${basePrompt}${memoryBlock}\n\n${relPrompt}${peoplePrompt}${slangPrompt}${noQuestionPrompt}${noInsultPrompt}`;
 
       let aiReply: string;
       // Режим помирования в ЛС (score < 0)

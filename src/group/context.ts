@@ -1,5 +1,6 @@
 import { config } from '@/config/env';
 import type { GroupContext, GroupMessage } from '@/types';
+import { bufferMessage } from '@/memory/store';
 
 interface ReplyChainEntry {
   userId: number;
@@ -27,12 +28,22 @@ export class GroupContextManager {
     const ctx = this.get(chatId);
     ctx.messages.push({ author, text, timestamp: Date.now() });
     if (ctx.lastBotReplyIndex >= 0) {
+      const trimmed = ctx.messages.slice(0, ctx.lastBotReplyIndex + 1);
       ctx.messages = ctx.messages.slice(ctx.lastBotReplyIndex + 1);
       ctx.lastBotReplyIndex = -1;
+      const numChatId = typeof chatId === 'string' ? parseInt(chatId.replace('-', '')) || 0 : chatId;
+      for (const m of trimmed) {
+        bufferMessage(-numChatId, m.author, m.text, Math.floor(m.timestamp / 1000));
+      }
     }
     const limit = config.groupContextLimit * 2;
     if (ctx.messages.length > limit) {
+      const trimmed = ctx.messages.slice(0, ctx.messages.length - config.groupContextLimit);
       ctx.messages = ctx.messages.slice(-config.groupContextLimit);
+      const numChatId = typeof chatId === 'string' ? parseInt(chatId.replace('-', '')) || 0 : chatId;
+      for (const m of trimmed) {
+        bufferMessage(-numChatId, m.author, m.text, Math.floor(m.timestamp / 1000));
+      }
     }
   }
 

@@ -39,7 +39,18 @@
 - **筛选** — AI 判断对话是否有趣到值得参与
 - **介入** — 冲突升级时介入（连续 2+ 条负面消息）
 - **表情反应** — 25% 概率添加表情反应
-- **上下文** — AI 看到最近 N 条消息，而非仅当前消息
+- **上下文** — AI 看到最近 N 条消息以及过往对话的分层记忆摘要
+
+### 🧠 分层记忆
+当消息超出上下文窗口时，机器人不会忘记对话。它会像人类一样构建分层记忆：
+
+- **日记忆** — 最近 24 小时的详细摘要
+- **短期记忆** — 最近 3 天的压缩摘要
+- **周记忆** — 最近一周的要点
+- **月记忆** — 最近一个月的精华
+- **超过 30 天** — 遗忘
+
+每隔 `GROUP_SCREENING_INTERVAL_MIN` 分钟，AI 会进行整合：新消息 → 日记忆，然后将较旧的层级压缩到下一级。群组和私聊均适用。所有记忆在机器人重启后保留（存储在 SQLite 中）。
 
 ### ⚙️ 技术特性
 - **SQLite 数据库** — 所有动态数据（关系、档案、封禁、参与度）存储在单个符合 ACID 的 `data/bot.db` 中。无竞态条件、无 JSON 损坏、重启不丢数据
@@ -125,8 +136,8 @@ data/
 | `contentSources.challenges.topics` | 健康提醒主题 |
 | `schedule.activeHours` | 活跃发布时段（开始/结束，HH:MM） |
 | `schedule.activeDays` | 活跃日期（0或7 = 周日，1 = 周一，...，6 = 周六） |
-| `schedule.idleThresholdMin` | 发布前需要沉默的分钟数（默认60） |
-| `schedule.minIntervalMin` | 两次发布之间的最小分钟数（默认120） |
+| `schedule.idleThresholdMin` | 发布前需要沉默的分钟数（设置了 contentSources 时必填） |
+| `schedule.minIntervalMin` | 两次发布之间的最小分钟数（设置了 contentSources 时必填） |
 | `personaStages` | 关系动态的情感阶段（见下文） |
 
 #### `personaStages`
@@ -249,6 +260,8 @@ data/
 | `bans` | 守卫拒绝次数和封禁到期时间戳 |
 | `chat_engagement` | 最后消息时间、内容历史、去重缓存、进行中的测验 |
 | `private_context` | 私聊对话历史（每个用户保留最近 10 条消息） |
+| `memory_buffer` | 超出上下文窗口的消息暂存区，等待摘要处理 |
+| `chat_memories` | 分层对话摘要（日 / 3天 / 周 / 月） |
 
 首次启动时，旧版 JSON 文件（`relationships.json`、`user-profiles.json`、`social-graph.json`）会自动导入 SQLite 并重命名为 `*.bak`。
 
@@ -269,7 +282,7 @@ data/
 | `PROXY_URL` | Telegram 的 HTTP 代理 |
 | `ALLOWED_USERS` | 允许的用户 ID/用户名（逗号分隔） |
 | `GROUP_ACTIVE_MODE` | 启用群组中的主动回复 |
-| `GROUP_SCREENING_INTERVAL_MIN` | 群组筛选间隔 |
+| `GROUP_SCREENING_INTERVAL_MIN` | 群组筛选间隔（也用于记忆整合） |
 | `GROUP_CONTEXT_LIMIT` | 消息上下文深度 |
 | `GROUP_REPLY_LIMIT_PER_HOUR` | 每小时主动回复限制 |
 | `GUARD_ENABLED` | 启用守护/主题检查 |

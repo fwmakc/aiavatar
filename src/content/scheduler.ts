@@ -12,6 +12,7 @@ import {
   recordPostedContent,
 } from '@/content/store/state';
 import type { ContentItem } from '@/content/types';
+import { runMemoryConsolidation } from '@/memory/consolidator';
 
 const CHECK_5_MIN = 5 * 60 * 1000;
 const CHECK_10_MIN = 10 * 60 * 1000;
@@ -23,14 +24,32 @@ let checkTimer: NodeJS.Timeout | null = null;
 export function startContentScheduler(): void {
   if (!config.contentEngineEnabled) {
     console.log('[ContentEngine] Disabled');
-    return;
+  } else {
+    console.log('[ContentEngine] Started (adaptive)');
+    setTimeout(() => {
+      runCheckCycle();
+    }, 60 * 1000);
   }
 
-  console.log('[ContentEngine] Started (adaptive)');
+  startMemoryConsolidation();
+}
 
-  setTimeout(() => {
-    runCheckCycle();
-  }, 60 * 1000);
+let memoryTimer: NodeJS.Timeout | null = null;
+
+function startMemoryConsolidation(): void {
+  const interval = config.groupScreeningIntervalMs;
+  console.log(`[Memory] Consolidation every ${Math.round(interval / 60000)} min`);
+
+  const run = async () => {
+    try {
+      await runMemoryConsolidation();
+    } catch (e) {
+      console.error('[Memory] Consolidation error:', e);
+    }
+    memoryTimer = setTimeout(run, interval);
+  };
+
+  setTimeout(run, 5 * 60 * 1000);
 }
 
 function computeNextCheckDelay(): number {

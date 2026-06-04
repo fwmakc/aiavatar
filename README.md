@@ -43,7 +43,18 @@ An adaptive scheduler posts content only when the chat is idle:
 - **Screening** — AI decides if the conversation is interesting enough to join
 - **Intervention** — steps in when conflict escalates (2+ negative messages in a row)
 - **Reactions** — 25% chance to add an emoji reaction
-- **Context** — AI sees the last N messages, not just the current one
+- **Context** — AI sees the last N messages plus tiered memory summaries of past conversations
+
+### 🧠 Tiered Memory
+The bot doesn't forget conversations when messages scroll out of the context window. Instead, it builds layered memories — like a human:
+
+- **Day memory** — detailed summary of the last 24 hours
+- **Short memory** — compressed summary of the last 3 days
+- **Week memory** — key points from the last week
+- **Month memory** — only the essentials from the last month
+- **Older than 30 days** — forgotten
+
+Every `GROUP_SCREENING_INTERVAL_MIN` minutes, AI consolidates: new messages → day memory, then older tiers are compressed into the next level. Works for both groups and DMs. All memories survive bot restarts (stored in SQLite).
 
 ### ⚙️ Technical
 - **SQLite database** — all dynamic data (relationships, profiles, bans, engagement) lives in a single ACID-compliant `data/bot.db`. No race conditions, no JSON corruption, no data loss on restart
@@ -129,8 +140,8 @@ data/
 | `contentSources.challenges.topics` | Topics for wellness reminders |
 | `schedule.activeHours` | Active posting window (start/end in HH:MM) |
 | `schedule.activeDays` | Active days (0 or 7 = Sunday, 1 = Monday, ..., 6 = Saturday) |
-| `schedule.idleThresholdMin` | Minutes of silence before posting (default 60) |
-| `schedule.minIntervalMin` | Minimum minutes between posts (default 120) |
+| `schedule.idleThresholdMin` | Minutes of silence before posting (required if contentSources set) |
+| `schedule.minIntervalMin` | Minimum minutes between posts (required if contentSources set) |
 | `personaStages` | Emotional stages for relationship dynamics (see below) |
 
 #### `personaStages`
@@ -253,6 +264,8 @@ All **dynamic** data is stored in `data/bot.db` (SQLite, WAL mode). The bot neve
 | `bans` | Guard denials and ban expiry timestamps |
 | `chat_engagement` | Last message time, content history, deduplication cache, active quiz |
 | `private_context` | DM conversation history (last 10 messages per user) |
+| `memory_buffer` | Staging area for messages pushed out of context window, awaiting summarization |
+| `chat_memories` | Tiered conversation summaries (day / short / week / month) |
 
 On first startup, legacy JSON files (`relationships.json`, `user-profiles.json`, `social-graph.json`) are automatically imported into SQLite and renamed to `*.bak`.
 
@@ -273,7 +286,7 @@ See [`.env.example`](.env.example).
 | `PROXY_URL` | HTTP proxy for Telegram |
 | `ALLOWED_USERS` | Allowed user IDs/usernames (comma-separated) |
 | `GROUP_ACTIVE_MODE` | Enable proactive replies in groups |
-| `GROUP_SCREENING_INTERVAL_MIN` | Group screening interval |
+| `GROUP_SCREENING_INTERVAL_MIN` | Group screening interval (also used for memory consolidation) |
 | `GROUP_CONTEXT_LIMIT` | Message context depth |
 | `GROUP_REPLY_LIMIT_PER_HOUR` | Proactive reply limit per hour |
 | `GUARD_ENABLED` | Enable guard/topic checks |

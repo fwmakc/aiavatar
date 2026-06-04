@@ -61,3 +61,27 @@ CREATE TABLE IF NOT EXISTS private_context (
   timestamp INTEGER NOT NULL DEFAULT (unixepoch())
 );
 CREATE INDEX IF NOT EXISTS idx_private_ctx_user ON private_context(user_id, timestamp);
+
+-- Staging: messages pushed out of sliding window, awaiting summarization
+CREATE TABLE IF NOT EXISTS memory_buffer (
+  id        INTEGER PRIMARY KEY AUTOINCREMENT,
+  chat_id   INTEGER NOT NULL,
+  author    TEXT NOT NULL,
+  content   TEXT NOT NULL,
+  timestamp INTEGER NOT NULL DEFAULT (unixepoch())
+);
+CREATE INDEX IF NOT EXISTS idx_memory_buffer_chat ON memory_buffer(chat_id, timestamp);
+
+-- Tiered conversation memory (day → short → week → month)
+CREATE TABLE IF NOT EXISTS chat_memories (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  chat_id      INTEGER NOT NULL,
+  tier         TEXT NOT NULL CHECK(tier IN ('day','short','week','month')),
+  summary      TEXT NOT NULL,
+  period_start INTEGER NOT NULL,
+  period_end   INTEGER NOT NULL,
+  msg_count    INTEGER NOT NULL DEFAULT 0,
+  created_at   INTEGER NOT NULL DEFAULT (unixepoch()),
+  updated_at   INTEGER NOT NULL DEFAULT (unixepoch())
+);
+CREATE INDEX IF NOT EXISTS idx_chat_memories_chat ON chat_memories(chat_id, tier);
