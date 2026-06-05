@@ -8,6 +8,14 @@
 
 A Telegram bot with a modular persona, social intelligence, and a content engine. A digital twin that remembers people, adapts to chats, posts content on schedule, and intervenes in arguments — all via JSON configs without touching the code.
 
+## Tutorial
+
+Step-by-step guide from zero to a working bot with personality, memory, and content engine:
+
+**[Read the tutorial →](tutorial/en/00-intro.md)**
+
+Available in: [English](tutorial/en/00-intro.md) | [Русский](tutorial/ru/00-intro.md) | [中文](tutorial/zh/00-intro.md)
+
 ## Who is this for?
 
 **Designed for small to medium Telegram groups (3–50 people) with low to moderate activity.**
@@ -129,14 +137,6 @@ docker-compose up -d
 docker build -t aiavatar .
 docker run -d --env-file .env -v ./data:/app/data aiavatar
 ```
-
-## Tutorial
-
-Step-by-step guide from zero to a working bot with personality, memory, and content engine:
-
-**[Read the tutorial →](tutorial/en/00-intro.md)**
-
-Available in: [English](tutorial/en/00-intro.md) | [Русский](tutorial/ru/00-intro.md) | [中文](tutorial/zh/00-intro.md)
 
 ## Config Structure
 

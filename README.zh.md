@@ -4,6 +4,14 @@
 
 一个具有模块化人格、社交智能和内容引擎的 Telegram 机器人。数字分身，能够记住用户、适应聊天环境、按计划发布内容并介入争论——全部通过 JSON 配置文件实现，无需修改代码。
 
+## 教程
+
+从零开始的分步指南，打造一个具有个性、记忆和内容引擎的机器人：
+
+**[阅读教程 →](tutorial/zh/00-intro.md)**
+
+可用语言：[English](tutorial/en/00-intro.md) | [Русский](tutorial/ru/00-intro.md) | [中文](tutorial/zh/00-intro.md)
+
 ## 适用场景
 
 **专为中小型 Telegram 群组（3–50人）设计，适合低到中等活跃度的聊天场景。**
@@ -125,14 +133,6 @@ docker-compose up -d
 docker build -t aiavatar .
 docker run -d --env-file .env -v ./data:/app/data aiavatar
 ```
-
-## 教程
-
-从零开始的分步指南，打造一个具有个性、记忆和内容引擎的机器人：
-
-**[阅读教程 →](tutorial/zh/00-intro.md)**
-
-可用语言：[English](tutorial/en/00-intro.md) | [Русский](tutorial/ru/00-intro.md) | [中文](tutorial/zh/00-intro.md)
 
 ## 配置结构
 
