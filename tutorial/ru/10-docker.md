@@ -1,4 +1,4 @@
-# 9. Docker
+# 10. Docker
 
 В проекте есть готовый `Dockerfile` и `docker-compose.yml` — можно запустить бота в контейнере без установки Node.js на сервер.
 
@@ -89,4 +89,4 @@ AI_MODEL=gpt-4o docker compose up -d
 
 ---
 
-**Далее:** [Профили людей →](10-users.md)
+**Далее:** [Профили людей →](11-users.md)
