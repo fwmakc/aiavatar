@@ -126,6 +126,14 @@ docker build -t aiavatar .
 docker run -d --env-file .env -v ./data:/app/data aiavatar
 ```
 
+## 教程
+
+从零开始的分步指南，打造一个具有个性、记忆和内容引擎的机器人：
+
+**[阅读教程 →](tutorial/zh/00-intro.md)**
+
+可用语言：[English](tutorial/en/00-intro.md) | [Русский](tutorial/ru/00-intro.md) | [中文](tutorial/zh/00-intro.md)
+
 ## 配置结构
 
 ```

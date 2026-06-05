@@ -130,6 +130,14 @@ docker build -t aiavatar .
 docker run -d --env-file .env -v ./data:/app/data aiavatar
 ```
 
+## Tutorial
+
+Step-by-step guide from zero to a working bot with personality, memory, and content engine:
+
+**[Read the tutorial →](tutorial/en/00-intro.md)**
+
+Available in: [English](tutorial/en/00-intro.md) | [Русский](tutorial/ru/00-intro.md) | [中文](tutorial/zh/00-intro.md)
+
 ## Config Structure
 
 ```

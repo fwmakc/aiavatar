@@ -126,6 +126,14 @@ docker build -t aiavatar .
 docker run -d --env-file .env -v ./data:/app/data aiavatar
 ```
 
+## Учебник
+
+Пошаговое руководство от нуля до работающего бота с индивидуальностью, памятью и контентным движком:
+
+**[Читать учебник →](tutorial/ru/00-intro.md)**
+
+Доступен на: [English](tutorial/en/00-intro.md) | [Русский](tutorial/ru/00-intro.md) | [中文](tutorial/zh/00-intro.md)
+
 ## Структура конфигов
 
 ```
